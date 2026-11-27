@@ -43,6 +43,11 @@ append_marker(value: String): String ->
 keep_present(value: String): Option[String] ->
     Some(value + "!").
 
+missing_int(): Int -> 7.
+
+unreachable_int(): Int ->
+    1 / 0.
+
 @pure
 pub pure_receiver_map(value: Option[String]): Option[String] ->
     value.map(append_marker).
@@ -124,6 +129,14 @@ pub with_default_uses_default_for_none(): Bool ->
 @test
 pub receiver_with_default_uses_default_for_none(): Bool ->
     assert_equal("missing", optional_string(false).with_default("missing")).
+
+@test
+pub with_default_else_calls_fallback_for_none(): Bool ->
+    assert_equal(7, Option.with_default_else(None, missing_int)).
+
+@test
+pub receiver_with_default_else_skips_fallback_for_some(): Bool ->
+    assert_equal(9, Some(9).with_default_else(unreachable_int)).
 
 @test
 pub compare_accepts_two_missing_values(): Bool ->

@@ -220,3 +220,20 @@ pub (value: Option[A]) map[A, B](f: (A) -> B): Option[B].
 
 @pure
 pub (value: Option[A]) with_default(default: A): A.
+
+/// Extracts a present value or computes a missing value lazily.
+///
+/// Input: one `Option[A]` and a zero-argument fallback function.
+/// Output: the present value, or the fallback result for `None`.
+/// Transformation: calls `fallback` only when the option is missing.
+///
+/// ```terlan
+/// module option_with_default_else_example.
+///
+/// import std.core.Option.{None}.
+///
+/// pub demo(value: Option[Int]): Int ->
+///    value.with_default_else(() -> 7).
+/// ```
+
+pub (value: Option[A]) with_default_else(fallback: () -> A): A.

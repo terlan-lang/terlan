@@ -255,6 +255,8 @@ std.core.Option.is_some.false	std/core/OptionTest.terl	is_some_rejects_missing_v
 std.core.Option.is_none.true	std/core/OptionTest.terl	is_none_accepts_missing_value
 std.core.Option.is_none.false	std/core/OptionTest.terl	is_none_rejects_present_value
 std.core.Option.with_default	std/core/OptionTest.terl	with_default_uses_default_for_none
+std.core.Option.with_default_else.none	std/core/OptionTest.terl	with_default_else_calls_fallback_for_none
+std.core.Option.with_default_else.some	std/core/OptionTest.terl	receiver_with_default_else_skips_fallback_for_some
 std.core.Option.compare.eq_none	std/core/OptionTest.terl	compare_accepts_two_missing_values
 std.core.Option.compare.lt_none_some	std/core/OptionTest.terl	compare_orders_missing_before_present_value
 std.core.Option.compare.gt_some_none	std/core/OptionTest.terl	compare_orders_present_value_after_missing
