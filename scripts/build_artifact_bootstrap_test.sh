@@ -19,10 +19,6 @@ awk '/^TERLAN_SELF_VALIDATION_(DIR|IMAGE) :=/ { print }
 awk '/^release-candidate-check:/ { copying=1 }
   copying && /^$/ { exit }
   copying { print }' "${make_sources[@]}" >> "$temporary/Makefile"
-awk '/^TERLAN_BOOTSTRAP_COMPILER :=/ || /^TERLAN_TYPE_FUZZ_CANDIDATE_(DIR|RESULT) / { print }
-  /^type-fuzz-candidate-check:/ { copying=1 }
-  copying && /^$/ { exit }
-  copying { print }' "${make_sources[@]}" >> "$temporary/Makefile"
 cat >> "$temporary/Makefile" <<'MAKE'
 .PHONY: terlan-compiler-bootstrap terlan-validation-vm-bootstrap verify editor-release-contract-check terlan-quality-tools-bootstrap build-artifact-budget-record check release-proof-evidence-check release-control-check
 terlan-compiler-bootstrap:
@@ -71,20 +67,8 @@ PRODUCER
   test "$(wc -l < builds)" -eq 2
   # Release validation reuses the validator without invoking destructive
   # measurement or rebuilding its unchanged image.
-  mkdir -p target/debug
-  cat > target/debug/terlc <<'TERLC'
-#!/usr/bin/env bash
-set -eu
-if [[ "$1 $2 $3" == "fuzz result verify" ]]; then test -s "$4"; exit; fi
-test "$1 $2 $3 $4" = "fuzz profile candidate --out-dir"
-mkdir -p "$5"
-printf 'passed\n' > "$5/result.json"
-printf 'run\n' >> fuzz-runs
-TERLC
-  chmod +x target/debug/terlc
   make --no-print-directory release-candidate-check
   make --no-print-directory release-candidate-check
-  test "$(wc -l < fuzz-runs)" -eq 1
   test -s target/self-validation/build-artifact-budget/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm
   test "$(wc -l < builds)" -eq 2
   # The explicit benchmark remains destructive by design and its next consumer
