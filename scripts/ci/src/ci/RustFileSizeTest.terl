@@ -1,0 +1,42 @@
+module ci.RustFileSizeTest.
+
+import ci.RustFileSize.
+import std.core.Option.{None, Some}.
+import std.core.String.
+
+many_lines(count: Int): String ->
+    if {
+        count == 0 -> "";
+        true -> String.append("line\n", many_lines(count - 1))
+    }.
+
+@test
+pub line_count_handles_empty_and_terminal_newlines(): Bool ->
+    RustFileSize.physical_lines("") == 0
+        and RustFileSize.physical_lines("one") == 1
+        and RustFileSize.physical_lines("one\n") == 1
+        and RustFileSize.physical_lines("one\n\n") == 2.
+
+@test
+pub test_paths_receive_the_larger_limit(): Bool ->
+    RustFileSize.is_test("crate/tests/value.rs")
+        and RustFileSize.is_test("crate/src/value_test.rs")
+        and RustFileSize.is_test("crate/src/parser_tests/value.rs")
+        and not RustFileSize.is_test("crate/src/value.rs")
+        and RustFileSize.line_limit("crate/tests/value.rs") == 2_000
+        and RustFileSize.line_limit("crate/src/value.rs") == 1_000.
+
+@test
+pub violations_are_direct_and_generated_sources_are_exempt(): Bool ->
+    let large = many_lines(1_001);
+    RustFileSize.violation("crate/src/value.rs", many_lines(1_000)) == None
+        and RustFileSize.violation("crate/src/value.rs", String.append("// @generated\n", large)) == None
+        and RustFileSize.violation("crate/src/generated/value.rs", large) == None
+        and case RustFileSize.violation("crate/src/value.rs", large) {
+    Some(message) ->
+        String.contains(
+            message,
+            "crate/src/value.rs: 1001 lines exceeds the 1000-line Rust file limit",
+        );
+    None -> false
+}.

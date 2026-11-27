@@ -1,0 +1,81 @@
+/**
+ * Enforces direct Rust source-size limits without a checked-in inventory.
+ */
+module ci.RustFileSize.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.{Int, String}.
+
+import type std.core.Option.
+
+@pure
+last(parts: List[String]): String ->
+    case parts {
+        [] -> "";
+        [value] -> value;
+        [_value | rest] -> last(rest)
+    }.
+
+@pure
+test_component(parts: List[String]): Bool ->
+    case parts {
+        [] -> false;
+        [part | rest] ->
+            part == "test"
+                or part == "tests"
+                or part == "fixture"
+                or part == "fixtures"
+                or String.ends_with(part, "_test")
+                or String.ends_with(part, "_tests")
+                or test_component(rest)
+    }.
+
+@pure
+pub is_test(path: String): Bool ->
+    let parts = String.split(path, "/");
+    let name = last(parts);
+    String.ends_with(name, "_test.rs") or name == "test.rs" or test_component(parts).
+
+@pure
+pub line_limit(path: String): Int ->
+    if {
+        is_test(path) -> 2_000;
+        true -> 1_000
+    }.
+
+@pure
+pub physical_lines(source: String): Int ->
+    let count = List.length(String.split(source, "\n"));
+    if {
+        source == "" -> 0;
+        String.ends_with(source, "\n") -> count - 1;
+        true -> count
+    }.
+
+@pure
+generated(path: String, source: String): Bool ->
+    String.contains(path, "/generated/")
+        or String.starts_with(path, "generated/")
+        or String.contains(source, "@generated")
+        or String.contains(source, "generated file").
+
+@pure
+pub violation(path: String, source: String): Option[String] ->
+    let lines = physical_lines(source);
+    let limit = line_limit(path);
+    if {
+        generated(path, source) or lines <= limit -> None;
+        true -> Some(
+            String.concat(
+                [
+                    path,
+                    ": ",
+                    Int.to_string(lines),
+                    " lines exceeds the ",
+                    Int.to_string(limit),
+                    "-line Rust file limit",
+                ],
+            ),
+        )
+    }.

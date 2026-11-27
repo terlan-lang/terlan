@@ -1,0 +1,82 @@
+#!/usr/bin/env -S terlc run
+import ci.{RustFileSize, RustFormatting}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{eprintln, println}.
+import std.io.File.
+import std.system.{Arguments, Process}.
+
+import type std.collections.List.
+import type std.core.Option.
+
+lines(text: String): List[String] ->
+    let trimmed = String.trim(text);
+    if {
+        trimmed == "" -> [];
+        true -> String.split(trimmed, "\n")
+    }.
+
+run_paths(arguments: List[String]): Option[List[String]] ->
+    case Process.run(Process.with_arguments(Process.command("git"), arguments)) {
+        Ok(output) ->
+            if {
+                output.status == 0 -> Some(lines(output.stdout));
+                true -> None
+            };
+        Err(_reason) -> None
+    }.
+
+tracked_sources(): Option[List[String]] ->
+    run_paths(["ls-files", "--", "*.rs"]).
+
+changed_sources(base: String, head: String): Option[List[String]] ->
+    run_paths(["diff", "--diff-filter=ACMR", "--name-only", base, head, "--", "*.rs"]).
+
+check(paths: List[String], checked: Int): Bool ->
+    case paths {
+        [] ->
+            let _printed =
+                println(
+                    String.concat(
+                        ["Rust file size passed: ", Int.to_string(checked), " changed files"],
+                    ),
+                );
+            true;
+        [path | rest] ->
+            if {
+                not File.exists(path) -> check(rest, checked);
+                true -> case File.read_text(path) {
+                    Err(reason) ->
+                        let _printed = eprintln(reason.message);
+                        false;
+                    Ok(source) ->
+                        case RustFileSize.violation(path, source) {
+                            None -> check(rest, checked + 1);
+                            Some(message) ->
+                                let _printed = eprintln(String.append("Rust file size failed: ", message));
+                                false
+                        }
+                }
+            }
+    }.
+
+entry(): Bool ->
+    when {
+        Some("--revisions") <- Arguments.get(0);
+        Some(base) <- Arguments.get(1);
+        Some(head) <- Arguments.get(2);
+        Some(force_all) <- Arguments.get(3);
+        Some(paths) <-
+            if {
+                force_all == "true" -> tracked_sources();
+                true -> changed_sources(base, head)
+            }
+    } else {
+        _ -> false
+    };
+    check(RustFormatting.sources(paths), 0).
+
+assert(entry());
+Unit.
