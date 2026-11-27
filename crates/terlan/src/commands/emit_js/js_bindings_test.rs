@@ -174,6 +174,20 @@ pub exact(value: Float): Option[Int] -> value.to_int_exact().
 }
 
 #[test]
+fn checked_integer_mul_div_executes_in_javascript() {
+    let source = r#"module tests.js.IntCheckedMulDiv.
+import std.core.Int.{checked_mul_div}.
+import type std.core.Option.
+pub calculate(left: Int, multiplier: Int, divisor: Int): Option[Int] ->
+    checked_mul_div(left, multiplier, divisor).
+"#;
+    execute(
+        &compiled(source),
+        "const accepted = calculate(6, 7, 2); if (!Array.isArray(accepted) || accepted[0] !== 'some' || accepted[1] !== 21) throw new Error('checked multiply-divide failed'); const widened = calculate(Number.MAX_SAFE_INTEGER, 2, 2); if (!Array.isArray(widened) || widened[1] !== Number.MAX_SAFE_INTEGER) throw new Error('widened intermediate failed'); for (const args of [[1, 1, 0], [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, 1]]) if (calculate(...args) !== 'none') throw new Error('invalid multiply-divide was accepted');",
+    );
+}
+
+#[test]
 fn optional_generic_host_values_distinguish_null_from_missing() {
     for kind in ["property", "method"] {
         let member = serde_json::from_value(serde_json::json!({

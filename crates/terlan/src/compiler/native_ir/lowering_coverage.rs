@@ -418,6 +418,7 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         P::IntFromString => LoweringCoverage::native("Intrinsic.core.int.from_string"),
         P::IntToStringBase => LoweringCoverage::native("Intrinsic.core.int.to_string_base"),
         P::IntFromStringBase => LoweringCoverage::native("Intrinsic.core.int.from_string_base"),
+        P::IntCheckedMulDiv => LoweringCoverage::native("Intrinsic.core.int.checked_mul_div"),
         P::ListNew => LoweringCoverage::native("Intrinsic.collections.list.new"),
         P::ListIsEmpty => LoweringCoverage::native("Intrinsic.collections.list.is_empty"),
         P::ListLength => LoweringCoverage::native("Intrinsic.collections.list.length"),

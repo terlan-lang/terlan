@@ -13,6 +13,7 @@ const TO_STRING: u8 = 1;
 const TO_STRING_BASE: u8 = 2;
 const FROM_STRING: u8 = 3;
 const FROM_STRING_BASE: u8 = 4;
+const CHECKED_MUL_DIV: u8 = 5;
 const OPTION_OPERATION_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES;
 const MAX_INTEGER_PARSE_BYTES: usize = 128;
 
@@ -34,6 +35,11 @@ pub fn encode_int_from_string_operation(option_semantic: SemanticTypeId) -> Vec<
 /// Encodes checked integer parsing in a caller-supplied radix.
 pub fn encode_int_from_string_base_operation(option_semantic: SemanticTypeId) -> Vec<u8> {
     option_operation(FROM_STRING_BASE, option_semantic)
+}
+
+/// Encodes widened checked multiply-then-divide into the identified option layout.
+pub fn encode_int_checked_mul_div_operation(option_semantic: SemanticTypeId) -> Vec<u8> {
+    option_operation(CHECKED_MUL_DIV, option_semantic)
 }
 
 pub(super) fn is_integer_operation(encoded: &[u8]) -> bool {
@@ -70,6 +76,14 @@ pub(super) fn execute_integer_operation(
                 .transpose()?
                 .flatten();
             allocate_option_int(heap, layouts, semantic_at(encoded)?, parsed)
+        }
+        (CHECKED_MUL_DIV, OPTION_OPERATION_BYTES, [left, multiplier, divisor])
+            if encoded[7] == 0 =>
+        {
+            let quotient = (*divisor != 0)
+                .then(|| (i128::from(*left) * i128::from(*multiplier)) / i128::from(*divisor))
+                .and_then(|value| i64::try_from(value).ok());
+            allocate_option_int(heap, layouts, semantic_at(encoded)?, quotient)
         }
         _ => Err(ManagedMemoryError::InvalidManagedOperation),
     }

@@ -12,6 +12,7 @@ use super::template_runtime::template_renderer_identifier;
 mod case;
 mod comprehension;
 mod float_intrinsics;
+mod integer_intrinsics;
 mod lambda;
 mod let_expr;
 #[cfg(test)]
@@ -538,6 +539,9 @@ fn core_intrinsic_call_expr_to_oxc_expression<'a>(
         crate::terlan_typeck::CoreIntrinsicId::Primitive(
             crate::terlan_typeck::CorePrimitiveIntrinsic::FloatToIntExact,
         ) => float_intrinsics::float_to_int_exact_to_oxc_expression(ast, &call.args),
+        crate::terlan_typeck::CoreIntrinsicId::Primitive(
+            crate::terlan_typeck::CorePrimitiveIntrinsic::IntCheckedMulDiv,
+        ) => integer_intrinsics::checked_mul_div_to_oxc_expression(ast, &call.args),
         crate::terlan_typeck::CoreIntrinsicId::Primitive(intrinsic)
             if float_math_method(intrinsic).is_some() =>
         {

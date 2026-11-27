@@ -257,6 +257,10 @@ pub runtime(paths: List[String]): Bool ->
         or affected(paths, "crates/terlan/src/runtime.rs", "")
         or affected(paths, "crates/terlan/src/vm/", ".rs").
 
+pub validation(paths: List[String]): Bool ->
+    affected(paths, "crates/terlan/src/validation/", ".rs")
+        or affected(paths, "crates/terlan/src/validation.rs", "").
+
 pub workspace(paths: List[String]): Bool ->
     general_fixtures(paths) or non_owned_rust(paths).
 
@@ -345,6 +349,8 @@ non_owned_rust(paths: List[String]): Bool ->
     and not String.starts_with(path, "crates/terlan/src/runtime/")
     and path != "crates/terlan/src/runtime.rs"
     and not String.starts_with(path, "crates/terlan/src/vm/")
+    and not String.starts_with(path, "crates/terlan/src/validation/")
+    and path != "crates/terlan/src/validation.rs"
     and path != "crates/terlan/build.rs"
     and not String.starts_with(path, "crates/terlan-test-orchestrator/")
     and not String.starts_with(path, "crates/terlan-native-planning/")
@@ -791,6 +797,11 @@ pub lanes(paths: List[String]): List[String] ->
             runtime(paths) -> ["runtime"];
             true -> List.new[String]()
         };
+    let validation_rust =
+        if {
+            validation(paths) -> ["validation"];
+            true -> List.new[String]()
+        };
     let workspace_rust =
         if {
             workspace(paths) -> ["workspace"];
@@ -807,7 +818,10 @@ pub lanes(paths: List[String]): List[String] ->
                         command_rust,
                         append(
                             cli_rust,
-                            append(compiler_rust, append(runtime_rust, workspace_rust)),
+                            append(
+                                compiler_rust,
+                                append(runtime_rust, append(validation_rust, workspace_rust)),
+                            ),
                         ),
                     ),
                 ),
@@ -900,16 +914,10 @@ pub hosted_lanes(paths: List[String]): List[String] ->
  * repeats a subset.
  */
 pub execution_lanes(paths: List[String]): List[String] ->
-    prioritize_test_lanes(minimal_test_lanes(include_proof_workspace(lanes(paths)))).
+    prioritize_test_lanes(minimal_test_lanes(lanes(paths))).
 
 pub hosted_execution_lanes(paths: List[String]): List[String] ->
-    prioritize_test_lanes(minimal_test_lanes(include_proof_workspace(hosted_lanes(paths)))).
-
-include_proof_workspace(values: List[String]): List[String] ->
-    if {
-        contains_lane(values, "proofs") and not contains_lane(values, "workspace") -> ["workspace" | values];
-        true -> values
-    }.
+    prioritize_test_lanes(minimal_test_lanes(hosted_lanes(paths))).
 
 minimal_test_lanes(values: List[String]): List[String] ->
     retain_minimal_test_lanes(values, values).
@@ -942,6 +950,7 @@ workspace_test_subset(lane: String): Bool ->
         or lane == "syntax"
         or lane == "phase"
         or lane == "runtime"
+        or lane == "validation"
         or lane == "cli-integration"
         or lane == "test-orchestrator"
         or lane == "rust-boundary-audit"
@@ -985,6 +994,7 @@ test_lane_priority(): List[String] ->
         "syntax",
         "phase",
         "runtime",
+        "validation",
         "workspace",
         "native-planning",
         "process-owner",

@@ -5,6 +5,32 @@ use crate::validation::native_policy::NativePolicy;
 use crate::validation::target_profile::TargetProfile;
 use crate::DiagnosticFormat;
 
+#[test]
+fn bootstrap_js_lowers_checked_integer_mul_div() {
+    let source = r#"
+module js_checked_integer_mul_div.
+
+import std.core.Int.{checked_mul_div}.
+import type std.core.Option.
+
+pub calculate(left: Int, multiplier: Int, divisor: Int): Option[Int] ->
+    checked_mul_div(left, multiplier, divisor).
+"#;
+    let artifacts = compile_syntax_module_through_phases_with_profile(
+        "js_checked_integer_mul_div.terl",
+        source,
+        DiagnosticFormat::default(),
+        None,
+        NativePolicy::default(),
+        TargetProfile::JsShared,
+    )
+    .expect("compile checked multiply-divide for JS");
+
+    let js = core_lowering::emit_core_module_to_js(&artifacts.core);
+    assert!(js.contains("BigInt(left) * BigInt(multiplier)"), "{js}");
+    assert!(js.contains("divisor === 0 ? \"none\""), "{js}");
+}
+
 /// Proves typed constants are eliminated before JavaScript target lowering.
 #[test]
 fn value_lifecycle_constants_are_substituted_for_js() {

@@ -616,12 +616,12 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
             constructor: "Option".to_string(),
             args: vec![CoreType::String],
         },
-        CorePrimitiveIntrinsic::IntFromString | CorePrimitiveIntrinsic::IntFromStringBase => {
-            CoreType::Apply {
-                constructor: "Option".to_string(),
-                args: vec![CoreType::Int],
-            }
-        }
+        CorePrimitiveIntrinsic::IntFromString
+        | CorePrimitiveIntrinsic::IntFromStringBase
+        | CorePrimitiveIntrinsic::IntCheckedMulDiv => CoreType::Apply {
+            constructor: "Option".to_string(),
+            args: vec![CoreType::Int],
+        },
         CorePrimitiveIntrinsic::FloatFromString => CoreType::Apply {
             constructor: "Option".to_string(),
             args: vec![CoreType::Float],

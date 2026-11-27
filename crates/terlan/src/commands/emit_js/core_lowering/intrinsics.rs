@@ -16,6 +16,17 @@ use super::*;
 ///   operations while keeping JavaScript names out of CoreIR and source syntax.
 pub(super) fn core_intrinsic_call_expr_to_js(call: &CoreIntrinsicCall) -> Option<String> {
     match &call.id {
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::IntCheckedMulDiv) => {
+            let [left, multiplier, divisor] = call.args.as_slice() else {
+                return None;
+            };
+            Some(format!(
+                "((left, multiplier, divisor) => divisor === 0 ? \"none\" : ((result) => result >= BigInt(\"-9223372036854775808\") && result <= BigInt(\"9223372036854775807\") ? [\"some\", Number(result)] : \"none\")((BigInt(left) * BigInt(multiplier)) / BigInt(divisor)))({}, {}, {})",
+                core_expr_to_js(left)?,
+                core_expr_to_js(multiplier)?,
+                core_expr_to_js(divisor)?,
+            ))
+        }
         CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::FloatToIntExact) => {
             let [value] = call.args.as_slice() else {
                 return None;

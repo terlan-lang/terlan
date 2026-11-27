@@ -215,12 +215,13 @@ fn check_function_bounds_with_structural_subst(
             })
             .collect::<Vec<_>>();
         let resolved_args = canonicalize_trait_lookup_types(&resolved_args);
+        let visible_trait_name = source_visible_trait_name(&bound.trait_name, ctx);
         let trait_description = if resolved_args.is_empty() {
-            bound.trait_name.clone()
+            visible_trait_name.to_string()
         } else {
             format!(
                 "{}[{}]",
-                bound.trait_name,
+                visible_trait_name,
                 resolved_args
                     .iter()
                     .map(pretty_type)
@@ -259,6 +260,17 @@ fn check_function_bounds_with_structural_subst(
     }
 
     Ok(())
+}
+
+/// Keeps diagnostics aligned with the trait spelling visible at the call site.
+fn source_visible_trait_name<'a>(trait_name: &'a str, ctx: &ExprInferContext<'_>) -> &'a str {
+    trait_name
+        .rsplit('.')
+        .next()
+        .filter(|local_name| {
+            *local_name != trait_name && ctx.trait_signatures.contains_key(*local_name)
+        })
+        .unwrap_or(trait_name)
 }
 
 /// Extends call substitutions only for direct generic parameters constrained
@@ -484,10 +496,20 @@ fn trait_bound_is_explicitly_denied(
     {
         return false;
     }
-    let Some(candidates) = ctx.negative_trait_impl_type_args.get(trait_name) else {
-        return false;
-    };
-    candidates.iter().any(|candidate| {
+    let mut candidates = ctx
+        .negative_trait_impl_type_args
+        .get(trait_name)
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+    if let Some(local_name) = trait_name.rsplit('.').next().filter(|local_name| {
+        *local_name != trait_name && ctx.trait_signatures.contains_key(*local_name)
+    }) {
+        if let Some(local_candidates) = ctx.negative_trait_impl_type_args.get(local_name) {
+            candidates.extend(local_candidates);
+        }
+    }
+    candidates.into_iter().any(|candidate| {
         let expanded = candidate
             .iter()
             .map(|arg| expand_type_aliases(arg, ctx.aliases))
@@ -692,11 +714,27 @@ pub(crate) fn trait_has_bound_implementation(
         }
     }
 
-    let candidates = ctx
+    let mut candidates = ctx
         .trait_bound_impl_type_args
         .get(trait_name)
         .cloned()
-        .unwrap_or_else(|| imported_interface_trait_bound_impls(trait_name, ctx));
+        .unwrap_or_default();
+    if let Some(local_name) = trait_name.rsplit('.').next().filter(|local_name| {
+        *local_name != trait_name && ctx.trait_signatures.contains_key(*local_name)
+    }) {
+        if let Some(local_candidates) = ctx.trait_bound_impl_type_args.get(local_name) {
+            for candidate in local_candidates {
+                if !candidates.contains(candidate) {
+                    candidates.push(candidate.clone());
+                }
+            }
+        }
+    }
+    for imported in imported_interface_trait_bound_impls(trait_name, ctx) {
+        if !candidates.contains(&imported) {
+            candidates.push(imported);
+        }
+    }
 
     let mut found = false;
     for impl_args in &candidates {
@@ -763,8 +801,12 @@ fn imported_interface_trait_bound_impls(
                 .rsplit('.')
                 .next()
                 .unwrap_or(&implemented_trait.name);
+            let provider_local_trait = !implemented_trait.name.contains('.')
+                && interface.traits.contains_key(&implemented_trait.name)
+                && crate::terlan_hir::public_type_path(&interface.module, &implemented_trait.name)
+                    == trait_name;
             let matches = if trait_name.contains('.') {
-                implemented_trait.name == trait_name
+                implemented_trait.name == trait_name || provider_local_trait
             } else {
                 implemented_trait.name == trait_name || short_name == trait_name
             };
@@ -825,7 +867,18 @@ fn current_bounds_satisfy_trait_bound(
     ctx: &ExprInferContext<'_>,
 ) -> bool {
     ctx.current_bounds.iter().any(|bound| {
-        if bound.trait_name != trait_name || bound.trait_args.len() != bound_args.len() {
+        let same_trait = bound.trait_name == trait_name
+            || trait_name.rsplit('.').next().is_some_and(|local_name| {
+                local_name == bound.trait_name && ctx.trait_signatures.contains_key(local_name)
+            })
+            || bound
+                .trait_name
+                .rsplit('.')
+                .next()
+                .is_some_and(|local_name| {
+                    local_name == trait_name && ctx.trait_signatures.contains_key(local_name)
+                });
+        if !same_trait || bound.trait_args.len() != bound_args.len() {
             return false;
         }
 

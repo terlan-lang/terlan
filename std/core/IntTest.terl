@@ -1,6 +1,6 @@
 module std.core.IntTest.
 
-import std.core.Int.{abs, checked_abs, checked_add, checked_div, checked_mul, checked_sub, compare, equal, from_string, from_string_base, max, min, to_string, to_string_base}.
+import std.core.Int.{abs, checked_abs, checked_add, checked_div, checked_mul, checked_mul_div, checked_sub, compare, equal, from_string, from_string_base, max, min, to_string, to_string_base}.
 import std.core.Option.{None, Some}.
 import std.core.Ordering.{Eq, Gt, Lt, Ordering}.
 import std.test.Test.{assert, assert_equal, assert_false, each_result, row}.
@@ -73,6 +73,26 @@ pub checked_mul_rejects_overflow_for_every_sign_pair(): Bool ->
         and assert_equal(None, checked_mul(9_223_372_036_854_775_807, -2))
         and assert_equal(None, checked_mul(minimum_value(), 2))
         and assert_equal(None, checked_mul(minimum_value(), -1)).
+
+@test
+pub checked_mul_div_uses_a_widened_intermediate(): Bool ->
+    assert_equal(Some(21), checked_mul_div(6, 7, 2))
+        and assert_equal(Some(9_223_372_036_854_775_807), checked_mul_div(9_223_372_036_854_775_807, 2, 2))
+        and assert_equal(Some(minimum_value()), checked_mul_div(minimum_value(), 2, 2)).
+
+@test
+pub checked_mul_div_truncates_and_preserves_sign(): Bool ->
+    assert_equal(Some(3), checked_mul_div(7, 1, 2))
+        and assert_equal(Some(-3), checked_mul_div(-7, 1, 2))
+        and assert_equal(Some(-3), checked_mul_div(7, 1, -2))
+        and assert_equal(Some(3), checked_mul_div(-7, 1, -2)).
+
+@test
+pub checked_mul_div_rejects_undefined_or_out_of_range_results(): Bool ->
+    assert_equal(None, checked_mul_div(1, 1, 0))
+        and assert_equal(None, checked_mul_div(9_223_372_036_854_775_807, 2, 1))
+        and assert_equal(None, checked_mul_div(minimum_value(), -1, 1))
+        and assert_equal(None, checked_mul_div(minimum_value(), 1, -1)).
 
 @test
 pub checked_div_rejects_undefined_operations(): Bool ->

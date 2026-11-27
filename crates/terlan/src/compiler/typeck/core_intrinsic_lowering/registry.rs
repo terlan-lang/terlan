@@ -320,6 +320,7 @@ fn core_int_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePrim
         ("from_string", 1) => Some(CorePrimitiveIntrinsic::IntFromString),
         ("to_string_base", 2) => Some(CorePrimitiveIntrinsic::IntToStringBase),
         ("from_string_base", 2) => Some(CorePrimitiveIntrinsic::IntFromStringBase),
+        ("checked_mul_div", 3) => Some(CorePrimitiveIntrinsic::IntCheckedMulDiv),
         _ => None,
     }
 }

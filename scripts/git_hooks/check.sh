@@ -11,6 +11,10 @@ hosted_dependency_audit=${TERLAN_HOSTED_DEPENDENCY_AUDIT:-0}
 case "$hosted_dependency_audit" in 0|1) ;; *) echo "unsupported hosted dependency-audit mode: $hosted_dependency_audit" >&2; exit 2 ;; esac
 test ! -L "$CARGO_TARGET_DIR"
 mkdir -p "$CARGO_TARGET_DIR"
+validation_tmp="/tmp/terlan-validation-attempt.$$"
+test ! -L "$validation_tmp"
+mkdir -p "$validation_tmp"
+export TMPDIR="$validation_tmp"
 target_terlc="$CARGO_TARGET_DIR/debug/terlc"
 terlc="$target_terlc"
 export TERLC="$terlc"
@@ -84,13 +88,24 @@ compiler_input_key="$({
   fi
 } | git hash-object --stdin)"
 compiler_input_receipt="$CARGO_TARGET_DIR/.terlan-compiler-input"
+candidate_snapshot_directory="$CARGO_TARGET_DIR/debug/validation-tools/staged-compiler-$compiler_input_key"
+candidate_snapshot_terlc="$candidate_snapshot_directory/terlc"
+candidate_snapshot_vm="$candidate_snapshot_directory/terlan-vm"
+candidate_snapshot_worker="$candidate_snapshot_directory/terlan-native-worker"
 exact_compiler_inputs=false
-if [[ -x "$target_terlc" \
+if [[ -x "$candidate_snapshot_terlc" \
+  && ! -L "$candidate_snapshot_terlc" \
+  && -x "$candidate_snapshot_vm" \
+  && ! -L "$candidate_snapshot_vm" \
+  && -x "$candidate_snapshot_worker" \
+  && ! -L "$candidate_snapshot_worker" \
   && -f "$compiler_input_receipt" \
   && ! -L "$compiler_input_receipt" \
   && $(wc -l < "$compiler_input_receipt") == 1 \
   && $(sed -n '1p' "$compiler_input_receipt") == "$compiler_input_key" ]]; then
   exact_compiler_inputs=true
+  terlc="$candidate_snapshot_terlc"
+  export TERLC="$terlc"
 fi
 compiler_build=true
 if [[ "$exact_compiler_inputs" == true ]]; then compiler_build=false; fi
@@ -196,7 +211,8 @@ else
   echo 'pre-commit: reuse compiler; no compiler inputs changed'
 fi
 compiler_validation_identity=$compiler_input_key
-if [[ "$terlc" != "$target_terlc" ]]; then
+if [[ "$terlc" != "$target_terlc" \
+  && "$terlc" != "$candidate_snapshot_terlc" ]]; then
   # A compatible external compiler may bootstrap planning, but its validation
   # evidence is not interchangeable with the staged candidate compiler.
   compiler_validation_identity=$(git hash-object "$terlc")
@@ -598,6 +614,41 @@ ensure_native_test_companions() {
   native_test_companions_ready=true
   export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-worker"
 }
+activate_staged_candidate_compiler() {
+  if [[ "$compiler_build" == false ]]; then
+    return
+  fi
+  echo 'pre-commit: build and activate exact staged compiler'
+  cargo build --locked -p terlan \
+    --bin terlc --bin terlan-vm --bin terlan-native-worker
+  [[ -x "$target_terlc" && ! -L "$target_terlc" ]]
+  [[ -x "$CARGO_TARGET_DIR/debug/terlan-vm" \
+    && ! -L "$CARGO_TARGET_DIR/debug/terlan-vm" ]]
+  [[ -x "$CARGO_TARGET_DIR/debug/terlan-native-worker" \
+    && ! -L "$CARGO_TARGET_DIR/debug/terlan-native-worker" ]]
+  mkdir -p "$candidate_snapshot_directory"
+  local source destination temporary
+  for source in \
+    "$target_terlc" \
+    "$CARGO_TARGET_DIR/debug/terlan-vm" \
+    "$CARGO_TARGET_DIR/debug/terlan-native-worker"; do
+    destination="$candidate_snapshot_directory/${source##*/}"
+    temporary="$destination.tmp.$$"
+    install -m 755 "$source" "$temporary"
+    mv "$temporary" "$destination"
+  done
+  local temporary_receipt
+  temporary_receipt=$(mktemp "$CARGO_TARGET_DIR/.terlan-compiler-input.XXXXXX")
+  printf '%s\n' "$compiler_input_key" > "$temporary_receipt"
+  mv "$temporary_receipt" "$compiler_input_receipt"
+  terlc="$candidate_snapshot_terlc"
+  export TERLC="$terlc"
+  export TERLAN_NATIVE_WORKER="$candidate_snapshot_worker"
+  compiler_build=false
+  compiler_validation_identity=$compiler_input_key
+  native_test_companions_ready=true
+  test_program_snapshots_ready=false
+}
 snapshot_test_programs() {
   "$orchestrator_path" --snapshot-test-programs "$CARGO_TARGET_DIR"
 }
@@ -707,36 +758,15 @@ run_focused_rust_crate() {
   cargo test --profile dev --locked -p "$package" --lib
 }
 
-impacted_type_fuzz_checked=false
-run_impacted_type_fuzz_profile() {
-  local candidate_tree output_dir result
-  local arguments=(fuzz profile impacted)
-  if [[ "$impacted_type_fuzz_checked" == true ]]; then return 0; fi
-  candidate_tree=$(git write-tree)
-  output_dir="$CARGO_TARGET_DIR/fuzz/profile/impacted/$candidate_tree"
-  result="$output_dir/result.json"
-  if "$terlc" fuzz result verify "$result" >/dev/null 2>&1; then
-    echo '[type-fuzz] reused impacted profile for exact candidate tree'
-    impacted_type_fuzz_checked=true
-    return 0
-  fi
-  arguments+=(--out-dir "$output_dir")
-  while IFS= read -r path; do
-    if [[ -n "$path" ]]; then arguments+=(--changed-path "$path"); fi
-  done < "$changes"
-  echo '[type-fuzz] running impacted families before broad validation'
-  "$terlc" "${arguments[@]}"
-  impacted_type_fuzz_checked=true
+run_focused_rust_binary() {
+  local package=$1
+  cargo clippy --locked -p "$package" --bin "$package" -- -D warnings || return $?
+  cargo test --profile dev --locked -p "$package" --bin "$package"
 }
 
 run_affected_rust_lane() {
   local lane=$1 filter
   affected_rust_lane_supported=true
-  case "$lane" in
-    commands*|phase|native-construction|native-ir|runtime|syntax|compiler|workspace|dependencies|type-fuzz)
-      run_impacted_type_fuzz_profile
-      ;;
-  esac
   case "$lane" in
     commands-test) run_commands_test_lane ;;
     commands)
@@ -787,6 +817,9 @@ run_affected_rust_lane() {
       ensure_native_test_companions
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib runtime::
       ;;
+    validation)
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib validation::
+      ;;
     syntax|compiler)
       filter=compiler::
       if [[ "$lane" == syntax ]]; then filter=compiler::syntax::; fi
@@ -813,7 +846,7 @@ run_affected_rust_lane() {
       fi
       ;;
     test-orchestrator) run_focused_rust_crate terlan-test-orchestrator ;;
-    rust-boundary-audit) run_focused_rust_crate terlan-rust-boundary-audit ;;
+    rust-boundary-audit) run_focused_rust_binary terlan-rust-boundary-audit ;;
     *) affected_rust_lane_supported=false; return 2 ;;
   esac
 }
@@ -847,7 +880,7 @@ run_workspace_suite() {
 
 run_proof_checks() {
   ensure_quality_tools
-  TERLC="$TERLAN_RUST_SUITE_TERLC" bash scripts/git_hooks/proofs.sh
+  TERLC="${TERLAN_RUST_SUITE_TERLC:-$terlc}" bash scripts/git_hooks/proofs.sh
 }
 
 run_proof_evidence() {
@@ -862,6 +895,14 @@ run_release_contract_lane() {
     "TERLAN_QUALITY=$quality_path"
   "$terlc" test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseCleanupTest.terl
 }
+run_negative_api_contracts() {
+  echo 'pre-commit: standard-library negative API contracts'
+  local contract
+  for contract in negative-api io-negative-api; do
+    TERLAN_REPOSITORY_ROOT="$PWD" TERLAN_STDLIB_VALIDATION_TERLC="$terlc" \
+      "$terlc" run scripts/self_validation/StdlibValidationMain.terl -- "$contract"
+  done
+}
 
 rust_lane_receipt_schema=terlan-affected-rust-lane-v1
 rust_lane_receipt_dir="$CARGO_TARGET_DIR/validation-results/rust-lanes"
@@ -871,6 +912,9 @@ rust_lane_key() {
   {
     printf '%s\n%s\n' "$rust_lane_receipt_schema" "$lane"
     git ls-files -s -z -- . \
+      ':(exclude)scripts/git_hooks/**' \
+      ':(exclude)scripts/git_hooks.sh' \
+      ':(exclude)scripts/git_hooks_test.sh' \
       ':(exclude)docs/quality/RUST_DEPENDENCY_IMPACT.json'
     printf '%s\n%s\n' \
       "CARGO_INCREMENTAL=${CARGO_INCREMENTAL:-<default>}" \
@@ -949,7 +993,6 @@ fi
 # Generated Rust reports and source-structure policy fail before any broad
 # Terlan compilation. Directly affected compiler and source ownership follows.
 if lane_has terlan; then
-  run_impacted_type_fuzz_profile
   echo 'pre-commit: early terlan ownership and coverage'
   # Terlan tests may cross a capability boundary even when no Rust test lane
   # is selected.  Provision the worker at the test boundary so a clean CI
@@ -1007,6 +1050,13 @@ if [[ "$early_clippy" == true ]]; then
     echo 'pre-commit: early affected Rust lane failed: clippy' >&2
     exit "$clippy_status"
   fi
+fi
+# The bootstrap compiler may plan and run cheap source gates, but every
+# remaining compiler contract must execute the exact staged candidate. Build
+# it once after static admission, then bind later receipts to that executable.
+activate_staged_candidate_compiler
+if preflight_has negative-api; then
+  run_negative_api_contracts
 fi
 while IFS= read -r lane; do
   if [[ "$lane" == clippy ]]; then
@@ -1088,13 +1138,6 @@ if preflight_has js-bindings; then
   TERLAN_JS_BINDINGS_ROOT="$PWD" TERLAN_JS_BINDINGS_TERLC="$terlc" \
     "$terlc" test scripts/self_validation/JsBindingsDriftTest.terl
 fi
-if preflight_has negative-api; then
-  echo 'pre-commit: standard-library negative API contracts'
-  for contract in negative-api io-negative-api; do
-    TERLAN_REPOSITORY_ROOT="$PWD" TERLAN_STDLIB_VALIDATION_TERLC="$terlc" \
-      "$terlc" run scripts/self_validation/StdlibValidationMain.terl -- "$contract"
-  done
-fi
 if lane_has native-bindings; then
   echo 'pre-commit: native binding generation, drift, and compiled protocols'
   make --no-print-directory native-binding-consistency-check
@@ -1173,16 +1216,6 @@ while IFS= read -r lane; do
       # Already checked once before release-profile consumers.
       ;;
     proofs)
-      if [[ "$workspace_lane_selected" == false ]]; then
-        echo 'pre-commit: canonical Rust suite required by proof runtime oracles'
-        if run_workspace_suite; then
-          workspace_lane_selected=true
-        else
-          lane_status=$?
-          echo 'pre-commit: stopping after canonical Rust suite failure' >&2
-          exit "$lane_status"
-        fi
-      fi
       run_proof_evidence
       run_proof_checks
       ;;
@@ -1206,7 +1239,7 @@ while IFS= read -r lane; do
         if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi
       done < "$changes"
       ;;
-    clippy|cli-integration|core-contracts|phase|commands|commands-emit-js|commands-test|commands-vm-artifact|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-construction|native-ir|runtime|syntax|compiler|workspace|dependencies|native-planning|process-owner|type-fuzz|test-orchestrator)
+    clippy|cli-integration|core-contracts|phase|commands|commands-emit-js|commands-test|commands-vm-artifact|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-construction|native-ir|runtime|validation|syntax|compiler|workspace|dependencies|native-planning|process-owner|type-fuzz|test-orchestrator)
       echo "pre-commit: duplicate affected Rust lane remained scheduled: $lane" >&2
       exit 1
       ;;

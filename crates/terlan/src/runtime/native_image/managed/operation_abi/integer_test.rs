@@ -10,9 +10,9 @@ use crate::runtime::native_image::managed::{
 use crate::runtime::native_image::TvmManagedLayoutDescriptor;
 
 use super::{
-    encode_int_from_string_base_operation, encode_int_from_string_operation,
-    encode_int_to_string_base_operation, encode_int_to_string_operation, execute_integer_operation,
-    MAX_INTEGER_PARSE_BYTES,
+    encode_int_checked_mul_div_operation, encode_int_from_string_base_operation,
+    encode_int_from_string_operation, encode_int_to_string_base_operation,
+    encode_int_to_string_operation, execute_integer_operation, MAX_INTEGER_PARSE_BYTES,
 };
 
 const OPTION_INT: &str = "Apply(Option;Int)";
@@ -135,6 +135,36 @@ fn integer_base_conversion_accepts_two_through_thirty_six_atomically() {
             .map(reference)
             .expect("render base");
         assert_option_string(&heap, &layouts, output, expected);
+    }
+}
+
+#[test]
+fn integer_checked_mul_div_uses_widened_signed_arithmetic() {
+    let mut heap = heap();
+    let layouts = registry();
+    let operation = encode_int_checked_mul_div_operation(semantic(OPTION_INT));
+
+    for (left, multiplier, divisor, expected) in [
+        (6, 7, 2, Some(21)),
+        (7, 1, 2, Some(3)),
+        (-7, 1, 2, Some(-3)),
+        (7, 1, -2, Some(-3)),
+        (i64::MAX, 2, 2, Some(i64::MAX)),
+        (i64::MIN, 2, 2, Some(i64::MIN)),
+        (1, 1, 0, None),
+        (i64::MAX, 2, 1, None),
+        (i64::MIN, -1, 1, None),
+        (i64::MIN, 1, -1, None),
+    ] {
+        let output = execute_integer_operation(
+            &mut heap,
+            &layouts,
+            &operation,
+            &[left, multiplier, divisor],
+        )
+        .map(reference)
+        .expect("checked multiply-divide");
+        assert_option_int_reference(&heap, &layouts, output, expected);
     }
 }
 

@@ -452,9 +452,11 @@ fn ensure_batch_success(
     } else {
         format!("case {}", implicated.join(", "))
     };
-    let detail = (!diagnostics.is_empty())
-        .then(|| format!(": {diagnostics}"))
-        .unwrap_or_default();
+    let detail = if diagnostics.is_empty() {
+        String::new()
+    } else {
+        format!(": {diagnostics}")
+    };
     Err(format!(
         "{subject} {} oracle ended as {}{detail}",
         oracle_name(batch[0].1.manifest.oracle),

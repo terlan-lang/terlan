@@ -1,6 +1,6 @@
 # Terlan 0.0.11 executable roadmap
 
-Status date: 2026-11-26
+Status date: 2026-11-27
 
 ## Outcome
 
@@ -82,7 +82,7 @@ is reported separately from compiler planning time.
 The primary tracks must exercise and close these release-blocking contracts;
 application-level workarounds do not satisfy them.
 
-- [ ] Add `Int.checked_mul_div` with widened, overflow-safe intermediate
+- [x] Add `Int.checked_mul_div` with widened, overflow-safe intermediate
   arithmetic and complete boundary coverage.
 - [ ] Add atomic bounded file reads that enforce their allocation limit across
   concurrent file replacement.
@@ -97,6 +97,12 @@ application-level workarounds do not satisfy them.
   them.
 - [ ] Admit domain-neutral regressions for every item above before marking the
   corresponding compiler fix complete.
+
+`Int.checked_mul_div` now computes through a signed 128-bit native intermediate,
+truncates division toward zero, and returns `None` for zero divisors or final
+results outside `Int`. Native ABI, Core intrinsic, bootstrap/direct JavaScript,
+and 100% standard-library declaration coverage exercise signed, truncating,
+widened, zero-divisor, and boundary-overflow cases.
 
 ## Release exit
 

@@ -44,7 +44,7 @@ fn store(root: PathBuf) -> Store {
 }
 
 #[test]
-fn exact_receipt_is_invisible_until_sealed_and_then_reused() {
+fn exact_receipt_is_published_immediately_and_reused() {
     let fixture = temporary_fixture("phase-receipt");
     let root = fixture.0.join("receipts");
     let phase = phase();
@@ -55,11 +55,6 @@ fn exact_receipt_is_invisible_until_sealed_and_then_reused() {
     store
         .remember(&phase, 2, &expected, &evidence(&expected))
         .unwrap();
-    assert!(store
-        .restore(&phase, 2, &expected, control)
-        .unwrap()
-        .is_none());
-    store.seal().unwrap();
     assert!(store
         .restore(&phase, 2, &expected, control)
         .unwrap()
@@ -102,7 +97,6 @@ fn force_mode_executes_instead_of_reusing() {
     store
         .remember(&phase, 2, &expected, &evidence(&expected))
         .unwrap();
-    store.seal().unwrap();
     store.force = true;
     assert!(store
         .restore(&phase, 2, &expected, control)

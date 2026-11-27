@@ -11,8 +11,23 @@ use std::process::Command;
 const MAX_ENTRIES: usize = 4_096;
 const MAX_BYTES: usize = 1024 * 1024;
 const CARGO_CACHE_AUTO_CLEAN_FREQUENCY: &str = "CARGO_CACHE_AUTO_CLEAN_FREQUENCY";
-const VALIDATION_ROUTING_ENV: [&str; 13] = [
+const VALIDATION_ROUTING_ENV: [&str; 32] = [
+    "_",
+    "__MISE_SESSION",
+    "CODEX_TOOL_CALL_ID",
+    "GIT_AUTHOR_DATE",
+    "GIT_AUTHOR_EMAIL",
+    "GIT_AUTHOR_NAME",
+    "GIT_COMMITTER_DATE",
+    "GIT_COMMITTER_EMAIL",
+    "GIT_COMMITTER_NAME",
+    "GIT_EDITOR",
+    "GIT_REFLOG_ACTION",
+    "OLDPWD",
+    "PWD",
     "TERLAN_CARGO_METADATA_OWNER",
+    "TERLAN_HOOK_LATEST_TERLC",
+    "TERLAN_HOOK_VALIDATION_RECEIPT_DIR",
     "TERLAN_RUST_ORCHESTRATOR",
     "TERLAN_RUST_SUITE_REPORT",
     "TERLAN_RUST_PHASE_RECEIPT_DIR",
@@ -23,13 +38,21 @@ const VALIDATION_ROUTING_ENV: [&str; 13] = [
     "TERLAN_NATIVE_WORKER",
     "TERLAN_TEST_COMPILER",
     "TERLAN_TEST_VM",
+    "TERLAN_VM_RUNNER",
     "TERLAN_VALIDATION_BOOTSTRAPPED",
+    "TEMP",
+    "TMP",
+    "TMPDIR",
     "SHLVL",
 ];
 const TEST_PROGRAM_ROUTING_ENV: [&str; 3] = [
     "TERLAN_RUST_SUITE_TERLC",
     "TERLAN_RUST_SUITE_VM",
     "TERLAN_RUST_SUITE_NATIVE_WORKER",
+];
+const TEST_PROGRAM_RUNTIME_ENV: [(&str, &str); 2] = [
+    ("TERLAN_RUST_SUITE_VM", "TERLAN_VM_RUNNER"),
+    ("TERLAN_RUST_SUITE_NATIVE_WORKER", "TERLAN_NATIVE_WORKER"),
 ];
 
 /// Owns one snapshot; subsequent launches never inherit the live environment.
@@ -165,6 +188,11 @@ impl ExecutionEnvironment {
         command.env("PATH", &self.test_path);
         for key in TEST_PROGRAM_ROUTING_ENV {
             command.env_remove(key);
+        }
+        for (source, destination) in TEST_PROGRAM_RUNTIME_ENV {
+            if let Some(value) = self.value(source) {
+                command.env(destination, value);
+            }
         }
         command
     }

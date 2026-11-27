@@ -3,8 +3,9 @@
 use std::collections::HashMap;
 
 use crate::runtime::native_image::managed::{
-    encode_int_from_string_base_operation, encode_int_from_string_operation,
-    encode_int_to_string_base_operation, encode_int_to_string_operation,
+    encode_int_checked_mul_div_operation, encode_int_from_string_base_operation,
+    encode_int_from_string_operation, encode_int_to_string_base_operation,
+    encode_int_to_string_operation,
 };
 use crate::terlan_typeck::{CoreIntrinsicCall, CoreIntrinsicId, CorePrimitiveIntrinsic};
 
@@ -29,12 +30,14 @@ pub(super) fn lower_integer_intrinsic(
             | CorePrimitiveIntrinsic::IntToStringBase
             | CorePrimitiveIntrinsic::IntFromString
             | CorePrimitiveIntrinsic::IntFromStringBase
+            | CorePrimitiveIntrinsic::IntCheckedMulDiv
     );
     if !supported {
         return Err("error[native_ir.int_intrinsic]: unsupported integer intrinsic".to_string());
     }
     let expected_arity = match intrinsic {
         CorePrimitiveIntrinsic::IntToString | CorePrimitiveIntrinsic::IntFromString => 1,
+        CorePrimitiveIntrinsic::IntCheckedMulDiv => 3,
         _ => 2,
     };
     if call.args.len() != expected_arity {
@@ -65,6 +68,9 @@ pub(super) fn lower_integer_intrinsic(
         CorePrimitiveIntrinsic::IntFromStringBase => {
             encode_int_from_string_base_operation(option_semantic(call)?)
         }
+        CorePrimitiveIntrinsic::IntCheckedMulDiv => {
+            encode_int_checked_mul_div_operation(option_semantic(call)?)
+        }
         _ => unreachable!(),
     };
     Ok(NativeExpr::ManagedOperation {
@@ -81,7 +87,8 @@ pub(super) fn infer_integer_intrinsic_type(call: &CoreIntrinsicCall) -> Option<N
         CoreIntrinsicId::Primitive(
             CorePrimitiveIntrinsic::IntToStringBase
             | CorePrimitiveIntrinsic::IntFromString
-            | CorePrimitiveIntrinsic::IntFromStringBase,
+            | CorePrimitiveIntrinsic::IntFromStringBase
+            | CorePrimitiveIntrinsic::IntCheckedMulDiv,
         ) => native_type(Some(&call.return_type), &call.return_type.contract_text()),
         _ => None,
     }

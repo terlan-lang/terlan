@@ -94,8 +94,9 @@ pub use float::{
     encode_float_to_string_operation, encode_float_trunc_operation,
 };
 pub use integer::{
-    encode_int_from_string_base_operation, encode_int_from_string_operation,
-    encode_int_to_string_base_operation, encode_int_to_string_operation,
+    encode_int_checked_mul_div_operation, encode_int_from_string_base_operation,
+    encode_int_from_string_operation, encode_int_to_string_base_operation,
+    encode_int_to_string_operation,
 };
 pub use memory::{encode_memory_retained_size_operation, encode_memory_shallow_size_operation};
 pub use pattern::{encode_managed_type_is_operation, encode_managed_variant_is_operation};

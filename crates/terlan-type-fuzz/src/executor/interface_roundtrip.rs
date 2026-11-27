@@ -78,7 +78,7 @@ pub(super) fn run(
             },
         )
     };
-    record_evidence(case, directory, &modules, &result.outcome, &result)?;
+    record_evidence(case, directory, &modules, result.outcome, &result)?;
     if result.outcome != "passed" {
         return Err(format!(
             "case {} interface-only semantic comparison ended as {}",

@@ -94,3 +94,16 @@ pub render(value: Value): String -> "${value}".
     );
     assert!(errors.is_empty(), "{errors:?}");
 }
+
+#[test]
+fn local_show_implementation_preserves_imported_primitive_implementations() {
+    let errors = diagnostics(
+        r#"module custom_and_primitive.
+import std.core.String.{Show}.
+struct Value { x: Int }.
+impl Show[Value] for Value { to_string(value: Value): String -> "${value.x}". }.
+pub render(value: Value): String -> "${value} ${42} ${true}".
+"#,
+    );
+    assert!(errors.is_empty(), "{errors:?}");
+}

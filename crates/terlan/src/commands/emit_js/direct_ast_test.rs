@@ -158,7 +158,7 @@ pub constructor Some {
 }.
 
 pub sum(): Int ->
-    let input = {7, Some(8)};
+    let input = {7, {Atom["some"], 8}};
     case input {
         {first, Some(second)} -> first + second
     }.

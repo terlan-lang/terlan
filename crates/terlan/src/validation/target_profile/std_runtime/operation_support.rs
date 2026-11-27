@@ -47,6 +47,7 @@ pub(in crate::validation::target_profile) fn target_profile_supports_vm_intrinsi
                     | CorePrimitiveIntrinsic::IntFromString
                     | CorePrimitiveIntrinsic::IntToStringBase
                     | CorePrimitiveIntrinsic::IntFromStringBase
+                    | CorePrimitiveIntrinsic::IntCheckedMulDiv
                     | CorePrimitiveIntrinsic::FloatToString
                     | CorePrimitiveIntrinsic::FloatFromString
                     | CorePrimitiveIntrinsic::FloatToIntExact

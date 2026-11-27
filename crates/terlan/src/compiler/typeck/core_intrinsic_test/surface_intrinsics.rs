@@ -4,6 +4,21 @@ use crate::terlan_syntax::parse_module_as_syntax_output;
 use crate::terlan_typeck::core_intrinsic_lowering::core_primitive_intrinsic;
 
 #[test]
+pub(super) fn checked_mul_div_has_widened_option_intrinsic_contract() {
+    let intrinsic = core_primitive_intrinsic("std.core.Int", "checked_mul_div", 3)
+        .expect("Int.checked_mul_div intrinsic");
+    assert_eq!(intrinsic, CorePrimitiveIntrinsic::IntCheckedMulDiv);
+    assert_eq!(intrinsic.registry_key(), "core.int.checked_mul_div");
+    assert_eq!(
+        core_primitive_intrinsic_return_type(&intrinsic),
+        CoreType::Apply {
+            constructor: "Option".to_string(),
+            args: vec![CoreType::Int],
+        }
+    );
+}
+
+#[test]
 pub(super) fn float_to_int_exact_has_checked_option_intrinsic_contract() {
     let intrinsic = core_primitive_intrinsic("std.core.Float", "to_int_exact", 1)
         .expect("Float.to_int_exact intrinsic");

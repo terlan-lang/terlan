@@ -14,7 +14,7 @@ const FORCE_ENV: &str = "TERLAN_TEST_FORCE_RERUN";
 const SCHEMA: &str = "terlan.rust-phase-receipt.v1";
 const MAX_BYTES: u64 = 64 * 1024;
 
-/// Retains new completions in memory until suite inputs close unchanged.
+/// Publishes exact-input completions as each phase finishes.
 pub(super) struct Store {
     root: Option<PathBuf>,
     input_identity: String,
@@ -60,7 +60,13 @@ impl Store {
         let path = root.join(format!("{key}.json"));
         let metadata = match std::fs::symlink_metadata(&path) {
             Ok(metadata) => metadata,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                println!(
+                    "[rust-test-suite] missing exact phase receipt {}",
+                    path.display()
+                );
+                return Ok(None);
+            }
             Err(error) => return Err(failure(error)),
         };
         if !metadata.is_file() || metadata.len() > MAX_BYTES {
@@ -111,10 +117,10 @@ impl Store {
         if self.pending.insert(key, document).is_some() {
             return Err(failure("duplicate phase receipt completion"));
         }
-        Ok(())
+        self.seal()
     }
 
-    /// Publishes only after normal or failure closeout verifies stable inputs.
+    /// Flushes any completed receipts not already published by `remember`.
     pub(super) fn seal(&mut self) -> Result<(), PhaseFailure> {
         let Some(root) = &self.root else {
             self.pending.clear();

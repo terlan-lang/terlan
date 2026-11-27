@@ -53,6 +53,15 @@ pub (left: Int) checked_div(right: Int): Option[Int].
 @pure
 pub (left: Int) checked_mul(right: Int): Option[Int].
 
+/// Multiplies and then divides with a widened intermediate value.
+///
+/// The multiplication cannot overflow `Int` before division reduces it.
+/// Returns `None` for a zero divisor or when the final quotient does not fit
+/// in `Int`. Division truncates toward zero.
+
+@pure
+pub (left: Int) checked_mul_div(multiplier: Int, divisor: Int): Option[Int].
+
 /// Subtracts an integer when the exact result fits in `Int`.
 ///
 /// Boundary checks run before arithmetic, so overflow never reaches the

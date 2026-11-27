@@ -320,8 +320,7 @@ pub snapshot(actor: ActorId, schema: SchemaId, state: String): SnapshotPlan ->\n
 fn syntax_output_rejects_actor_message_with_denied_delivery() {
     let diagnostics = check_syntax_output_with_std_interfaces(
         "module denied_actor_message.\n\
-import std.vm.Message.\n\
-import std.vm.Process.\n\
+import std.vm.{Message, Process}.\n\
 import std.vm.Process.{ActorMessage}.\n\
 import type std.vm.Process.{Process as ProcessHandle}.\n\
 pub struct LocalOnlyMessage { value: Int }.\n\

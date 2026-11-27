@@ -39,6 +39,15 @@ fn validation_routes_do_not_change_the_bound_execution_identity() {
     let fixture = temporary_fixture("environment-routes");
     let first = snapshot(
         &[
+            ("_", "first-launcher"),
+            ("__MISE_SESSION", "first-shell"),
+            ("CODEX_TOOL_CALL_ID", "first-tool-call"),
+            ("GIT_AUTHOR_DATE", "first-author-date"),
+            ("GIT_COMMITTER_DATE", "first-committer-date"),
+            ("OLDPWD", "/first/previous"),
+            ("PWD", "/first/display-only"),
+            ("TERLAN_HOOK_LATEST_TERLC", "first/terlc"),
+            ("TERLAN_HOOK_VALIDATION_RECEIPT_DIR", "first-hook-receipts"),
             ("TERLAN_RUST_SUITE_REPORT", "first.json"),
             ("TERLAN_RUST_PHASE_RECEIPT_DIR", "first-receipts"),
             ("TERLAN_RUST_SUITE_TERLC", "first/terlc"),
@@ -47,12 +56,22 @@ fn validation_routes_do_not_change_the_bound_execution_identity() {
                 "TERLAN_RUST_SUITE_NATIVE_WORKER",
                 "first/terlan-native-worker",
             ),
+            ("TMPDIR", "/first/tmp"),
             ("INPUT", "same"),
         ],
         &fixture.0,
     );
     let second = snapshot(
         &[
+            ("_", "second-launcher"),
+            ("__MISE_SESSION", "second-shell"),
+            ("CODEX_TOOL_CALL_ID", "second-tool-call"),
+            ("GIT_AUTHOR_DATE", "second-author-date"),
+            ("GIT_COMMITTER_DATE", "second-committer-date"),
+            ("OLDPWD", "/second/previous"),
+            ("PWD", "/second/display-only"),
+            ("TERLAN_HOOK_LATEST_TERLC", "second/terlc"),
+            ("TERLAN_HOOK_VALIDATION_RECEIPT_DIR", "second-hook-receipts"),
             ("TERLAN_RUST_SUITE_REPORT", "second.json"),
             ("TERLAN_RUST_PHASE_RECEIPT_DIR", "second-receipts"),
             ("TERLAN_RUST_SUITE_TERLC", "second/terlc"),
@@ -61,6 +80,7 @@ fn validation_routes_do_not_change_the_bound_execution_identity() {
                 "TERLAN_RUST_SUITE_NATIVE_WORKER",
                 "second/terlan-native-worker",
             ),
+            ("TMPDIR", "/second/tmp"),
             ("INPUT", "same"),
         ],
         &fixture.0,
@@ -75,6 +95,7 @@ fn validation_routes_do_not_change_the_bound_execution_identity() {
         first.value("TERLAN_RUST_SUITE_TERLC"),
         Some("first/terlc".into())
     );
+    assert_eq!(first.value("TMPDIR"), Some("/first/tmp".into()));
     assert_ne!(
         first.json(&[]),
         snapshot(&[("INPUT", "changed")], &fixture.0).json(&[])
@@ -166,14 +187,15 @@ fn tool_routes_do_not_change_validation_identity() {
         ("TERLAN_NATIVE_WORKER", "/first/native-worker".into()),
         ("TERLAN_TEST_COMPILER", "/first/terlc".into()),
         ("TERLAN_TEST_VM", "/first/vm".into()),
+        ("TERLAN_VM_RUNNER", "/first/runtime".into()),
         ("SEMANTIC_MODE", "same".into()),
     ];
     let first_identity = first.json(&[phase.clone()]);
-    for (_, value) in &mut phase.environment[..4] {
+    for (_, value) in &mut phase.environment[..5] {
         *value = "/second/route".into();
     }
     assert_eq!(first_identity, first.json(&[phase.clone()]));
-    phase.environment[4].1 = "changed".into();
+    phase.environment[5].1 = "changed".into();
     assert_ne!(first_identity, first.json(&[phase]));
 }
 
@@ -381,6 +403,14 @@ fn owning_make_commands_restore_only_the_immutable_program_routes() {
     );
     let ordinary = environment.test_command(Path::new("make"));
     let owned = environment.test_program_command(Path::new("make"));
+    assert_eq!(
+        command_value(&ordinary, "TERLAN_VM_RUNNER"),
+        Some("/snapshot/terlan-vm".into())
+    );
+    assert_eq!(
+        command_value(&ordinary, "TERLAN_NATIVE_WORKER"),
+        Some("/snapshot/terlan-native-worker".into())
+    );
     for (key, expected) in [
         ("TERLAN_RUST_SUITE_TERLC", "/snapshot/terlc"),
         ("TERLAN_RUST_SUITE_VM", "/snapshot/terlan-vm"),

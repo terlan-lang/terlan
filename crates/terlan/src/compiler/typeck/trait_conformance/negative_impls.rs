@@ -166,7 +166,17 @@ pub(crate) fn collect_visible_negative_trait_impl_type_args(
         let target_text =
             crate::terlan_hir::qualify_syntax_type_text(&for_type.text, &imported_type_refs);
         if let Some(target_type) = parse_negative_trait_bound_type(&target_text, alias_names) {
-            insert_negative_trait_bound_fact(&mut facts, target.name, target_type);
+            insert_negative_trait_bound_fact(&mut facts, target.name.clone(), target_type.clone());
+            if let Some(imported) = resolved.imported_traits.get(&target.name) {
+                insert_negative_trait_bound_fact(
+                    &mut facts,
+                    crate::terlan_hir::public_type_path(
+                        &imported.source_module,
+                        &imported.source_name,
+                    ),
+                    target_type,
+                );
+            }
         }
     }
 

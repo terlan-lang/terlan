@@ -4,6 +4,62 @@ use crate::terlan_hir::{
 };
 use crate::terlan_syntax::parse_module_as_syntax_output;
 
+/// An imported receiver method finds a provider-local blanket conformance.
+#[test]
+fn imported_receiver_method_finds_provider_local_bound_implementation() {
+    let provider = parse_module_as_syntax_output(
+        r#"
+module fixture.Transport.
+
+pub struct Session {
+    generation: Int,
+}.
+
+pub constructor Session {
+    (generation: Int): Session -> Session {generation: generation}
+}.
+
+pub trait Portable[T] {
+    transfer(value: T): T.
+}.
+
+pub impl Portable[T] for T {
+    transfer(value: T): T -> value.
+}.
+
+pub open(): Session -> Session(1).
+
+pub (session: Session) send[Payload](payload: Payload)[Portable[Payload]]: Payload ->
+    payload.
+"#,
+    )
+    .expect("transport fixture");
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        provider.module_name.clone(),
+        syntax_module_output_to_interface(&provider),
+    );
+
+    let consumer = parse_module_as_syntax_output(
+        r#"
+module fixture.Consumer.
+
+import fixture.Transport.
+import type fixture.Transport.Session.
+
+pub sample(): String -> Transport.open().send("accepted").
+"#,
+    )
+    .expect("consumer fixture");
+    let resolved = resolve_syntax_module_output_with_interfaces(&consumer, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&consumer, &resolved);
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {diagnostics:?}"
+    );
+}
+
 /// An imported generic function carries its trait evidence transitively.
 #[test]
 fn selected_imported_function_finds_separate_provider_conformance() {

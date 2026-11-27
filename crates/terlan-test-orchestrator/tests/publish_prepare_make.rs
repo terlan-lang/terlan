@@ -95,7 +95,6 @@ fn preparation_leaf() {
         for dependency in [
             "distribution",
             "release-boundary-check",
-            "source-extension-check",
             "publish-cache-prune",
         ] {
             assert!(
@@ -288,7 +287,6 @@ fn fixture() -> Fixture {
         "publish-evidence-refresh-plan-check",
         "publish-evidence-check",
         "release-boundary-check",
-        "source-extension-check",
         "terlan-release-promotion-bootstrap",
         "publish-preparation-admission",
         "publish-cache-prune",
@@ -301,7 +299,9 @@ fn fixture() -> Fixture {
     make.push_str(&format!(
         "publish-evidence-refresh: release-version-metadata-check terlan-compiler-bootstrap release-staged-distribution-verification-check\n{recipe}"
     ));
-    make.push_str("release-version-metadata-check source-extension-check terlan-release-promotion-bootstrap: terlan-compiler-bootstrap\n");
+    make.push_str(
+        "release-version-metadata-check terlan-release-promotion-bootstrap: terlan-compiler-bootstrap\n",
+    );
     for suffix in ["check", "refresh"] {
         make.push_str(&format!(
             "release-readiness-attestation-{suffix}:\n\t@TERLAN_PREPARE_STAGE=readiness \"$(FIXTURE_CHILD)\" --exact preparation_leaf --nocapture\nrelease-staged-distribution-verification-{suffix}: release-readiness-attestation-{suffix}\n\t@TERLAN_PREPARE_STAGE=distribution \"$(FIXTURE_CHILD)\" --exact preparation_leaf --nocapture\n"

@@ -201,6 +201,7 @@ printf 'README.md\n' > "$temporary/early-bindings/changes.txt"
   test "$(grep -Ec '^$' changes.candidate-plan)" = 0
   grep -q 'candidate validation deferred' "$temporary/fast-admission.log"
 )
+export TERLAN_HOOK_LATEST_TERLC="$temporary/early-bindings/cache/debug/terlc"
 
 cat > "$temporary/early-bindings/bin/cargo" <<'CARGO'
 #!/usr/bin/env bash
@@ -359,19 +360,15 @@ for contract in negative-api io-negative-api; do
     test "$status" = 38
   )
 done
-# A selected Rust lane must fail before broad preflight gates, and its failure
-# must propagate without executing the later gate.
+# A selected Rust lane failure must propagate without executing later gates.
+# Candidate-bound negative API contracts have their own earlier fixture above.
 cp "$exact_cargo_test" "$temporary/early-bindings/scripts/run_exact_cargo_test.sh"
 cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
 set -eu
 case "$*" in
   'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
-    printf 'preflight:negative-api\ncommands-doctor\nshell\n'
-    ;;
-  'run scripts/self_validation/StdlibValidationMain.terl -- negative-api')
-    printf 'late-negative-api\n' >> "$HOOK_ORDER_CALLS"
-    exit 43
+    printf 'commands-doctor\nshell\n'
     ;;
   *) exit 98 ;;
 esac
@@ -535,6 +532,7 @@ for scenario in failure success unrelated; do
     fi
   )
 done
+unset TERLAN_HOOK_LATEST_TERLC
 
 # Release-facing source changes must execute the concrete installer validator
 # before the broader repository contract. This would have caught stale getter
@@ -627,6 +625,10 @@ grep -Fq 'TERLAN_HOOK_MODE="${TERLAN_HOOK_MODE:-full}" bash "$driver" check' \
   "$(dirname "$driver")/../.githooks/pre-commit"
 grep -Fq 'candidate compiler produced an empty validation plan' \
   "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'export TMPDIR="$validation_tmp"' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'validation_tmp="/tmp/terlan-validation-attempt.$$"' \
+  "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'early affected Rust lane passed' \
   "$(dirname "$driver")/git_hooks/check.sh"
 focused_rust_crate=$(sed -n '/^run_focused_rust_crate()/,/^}/p' \
@@ -637,15 +639,23 @@ grep -Fq 'cargo clippy --locked -p "$package" --lib --bins -- -D warnings || ret
   <<< "$focused_rust_crate"
 grep -Fq 'cargo test --profile dev --locked -p "$package" --lib' \
   <<< "$focused_rust_crate"
+focused_rust_binary=$(sed -n '/^run_focused_rust_binary()/,/^}/p' \
+  "$(dirname "$driver")/git_hooks/check.sh")
+grep -Fq 'cargo clippy --locked -p "$package" --bin "$package" -- -D warnings' \
+  <<< "$focused_rust_binary"
+grep -Fq 'cargo test --profile dev --locked -p "$package" --bin "$package"' \
+  <<< "$focused_rust_binary"
 grep -Fq 'canonical Rust suite failed with status' \
   "$(dirname "$driver")/git_hooks/check.sh"
 if grep -Eq '^export TERLAN_CUDA_DIR$$' "$(dirname "$driver")/../Makefile"; then
   echo 'CUDA package routing leaked into every validation recipe' >&2
   exit 1
 fi
-grep -Fq 'stopping after canonical Rust suite failure' \
-  "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'duplicate affected Rust lane remained scheduled' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq "':(exclude)scripts/git_hooks/**'" \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq "':(exclude)scripts/git_hooks_test.sh'" \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'check tests/language/RepeatedLetSyntaxTest.terl' \
   "$(dirname "$driver")/git_hooks/check.sh"
@@ -703,6 +713,30 @@ grep -Fq 'early affected Rust lane failed: clippy' "$check_driver"
 early_clippy_line=$(grep -n -F 'if run_cached_affected_rust_lane clippy; then' "$check_driver" | cut -d: -f1)
 affected_lane_loop_line=$(grep -n -F 'while IFS= read -r lane; do' "$check_driver" | tail -1 | cut -d: -f1)
 test "$early_clippy_line" -lt "$affected_lane_loop_line"
+candidate_activation_block=$(sed -n \
+  '/^activate_staged_candidate_compiler()/,/^}/p' "$check_driver")
+grep -Fq "echo 'pre-commit: build and activate exact staged compiler'" \
+  <<< "$candidate_activation_block"
+grep -Fq -- '--bin terlc --bin terlan-vm --bin terlan-native-worker' \
+  <<< "$candidate_activation_block"
+grep -Fq 'mv "$temporary_receipt" "$compiler_input_receipt"' \
+  <<< "$candidate_activation_block"
+grep -Fq 'terlc="$candidate_snapshot_terlc"' <<< "$candidate_activation_block"
+grep -Fq 'install -m 755 "$source" "$temporary"' \
+  <<< "$candidate_activation_block"
+grep -Fq 'export TERLAN_NATIVE_WORKER="$candidate_snapshot_worker"' \
+  <<< "$candidate_activation_block"
+grep -Fq 'compiler_validation_identity=$compiler_input_key' \
+  <<< "$candidate_activation_block"
+candidate_activation_line=$(grep -n -F 'activate_staged_candidate_compiler' \
+  "$check_driver" | tail -1 | cut -d: -f1)
+test "$early_clippy_line" -lt "$candidate_activation_line"
+test "$candidate_activation_line" -lt "$affected_lane_loop_line"
+negative_api_line=$(grep -n -F 'run_negative_api_contracts' "$check_driver" \
+  | tail -1 | cut -d: -f1)
+test "$candidate_activation_line" -lt "$negative_api_line"
+test "$negative_api_line" -lt "$affected_lane_loop_line"
+test "$(grep -Fc 'run_negative_api_contracts' "$check_driver")" -eq 2
 if grep -Fq 'make --no-print-directory rust-clippy-check' "$check_driver"; then
   echo 'Pre-commit still invokes the duplicate all-features Clippy owner' >&2
   exit 1
@@ -858,7 +892,7 @@ if grep -Fq 'make --no-print-directory rust-test-suite' <<< "$workspace_suite"; 
 fi
 grep -Fq 'canonical Rust suite failed with status' <<< "$workspace_suite"
 grep -Fq 'bash scripts/git_hooks/proofs.sh' <<< "$proof_checks"
-grep -Fq 'TERLC="$TERLAN_RUST_SUITE_TERLC" bash scripts/git_hooks/proofs.sh' \
+grep -Fq 'TERLC="${TERLAN_RUST_SUITE_TERLC:-$terlc}" bash scripts/git_hooks/proofs.sh' \
   <<< "$proof_checks"
 grep -Fq 'workspace_lane_selected=true' \
   "$(dirname "$driver")/git_hooks/check.sh"
@@ -885,11 +919,12 @@ early_proof_checks_line=$(grep -n \
 test "$workspace_loop_line" -lt "$early_proof_checks_line"
 proof_lane=$(sed -n '/^    proofs)/,/^      ;;/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
-grep -Fq 'if [[ "$workspace_lane_selected" == false ]]' <<< "$proof_lane"
-grep -Fq 'run_workspace_suite' <<< "$proof_lane"
-grep -Fq 'stopping after canonical Rust suite failure' <<< "$proof_lane"
 grep -Fq 'run_proof_evidence' <<< "$proof_lane"
 grep -Fq 'run_proof_checks' <<< "$proof_lane"
+if grep -Fq 'run_workspace_suite' <<< "$proof_lane"; then
+  echo 'Proof admission still injects the canonical Rust suite' >&2
+  exit 1
+fi
 grep -Fq 'make --no-print-directory' \
   "$(dirname "$driver")/git_hooks/proofs.sh"
 if grep -Fq -- '--with-cargo-coverage' \
@@ -980,6 +1015,7 @@ git -C "$temporary/report-handoff" add .
   : > "$temporary/report-handoff.calls"
   status=0
   PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" \
+    TERLAN_HOOK_LATEST_TERLC="$PWD/cache/debug/terlc" \
     REPORT_HANDOFF_CALLS="$temporary/report-handoff.calls" \
     bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
     > "$temporary/report-handoff.log" 2>&1 || status=$?

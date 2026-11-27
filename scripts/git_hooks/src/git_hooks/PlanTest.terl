@@ -91,25 +91,28 @@ pub syntax_test_changes_include_cross_phase_contracts(): Bool ->
 
 @test
 pub lowering_changes_run_compiler_and_phase_tests(): Bool ->
-    Plan.lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-ir", "phase"]
-        and Plan.lanes(["crates/terlan/src/compiler/native_ir/source_constructor_test.rs"]) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-construction"]
-        and Plan.lanes(
+    Plan.lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-ir", "phase"].
+
+@test
+pub constructor_lowering_changes_run_construction_tests(): Bool ->
+    Plan.lanes(["crates/terlan/src/compiler/native_ir/source_constructor_test.rs"]) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-construction"].
+
+@test
+pub lowering_reports_run_native_and_phase_tests(): Bool ->
+    Plan.lanes(
     [
         "crates/terlan/src/compiler/native_ir/application/mutable_receivers.rs",
         "docs/quality/RUST_DEPENDENCY_IMPACT.json",
     ],
-) == [
-    "shell",
-    "vm-contracts",
-    "core-contracts",
-    "clippy",
-    "rust-reports",
-    "summaries",
-    "native-ir",
-    "phase",
-]
-        and Plan.preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["compiler-build", "rust-format", "rust-lint-allowances", "negative-api", "rust-docs"]
-        and Plan.lanes(
+) == ["shell", "vm-contracts", "core-contracts", "clippy", "rust-reports", "native-ir", "phase"].
+
+@test
+pub lowering_changes_run_candidate_preflight(): Bool ->
+    Plan.preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["compiler-build", "rust-format", "rust-lint-allowances", "negative-api", "rust-docs"].
+
+@test
+pub mixed_construction_changes_run_complete_native_lane(): Bool ->
+    Plan.lanes(
     [
         "crates/terlan/src/compiler/native_ir/collection_values.rs",
         "crates/terlan/src/compiler/native_ir/collection_values/typed_values.rs",
@@ -134,6 +137,13 @@ pub unrelated_native_changes_keep_the_complete_native_lane(): Bool ->
 pub runtime_changes_use_owned_tests(): Bool ->
     Plan.lanes(["crates/terlan/src/runtime/vm.rs"]) == ["shell", "clippy", "rust-reports", "runtime"]
         and Plan.execution_lanes(["crates/terlan/src/runtime/vm.rs"]) == ["shell", "clippy", "runtime", "rust-reports"].
+
+@test
+pub validation_changes_use_owned_tests(): Bool ->
+    Plan.lanes(["crates/terlan/src/validation/target_profile/std_runtime/operation_support.rs"]) == ["shell", "clippy", "rust-reports", "validation"]
+        and Plan.execution_lanes(
+    ["crates/terlan/src/validation/target_profile/std_runtime/operation_support.rs"],
+) == ["shell", "clippy", "validation", "rust-reports"].
 
 @test
 pub dependency_changes_compile_without_unrelated_suites(): Bool ->
@@ -257,12 +267,12 @@ pub managed_runtime_changes_run_vm_contracts_early(): Bool ->
 @test
 pub hosted_execution_keeps_tests_early_and_omits_duplicates(): Bool ->
     Plan.hosted_execution_lanes(["crates/terlan/src/runtime/vm.rs"]) == ["shell", "clippy", "runtime", "rust-reports"]
-        and Plan.hosted_execution_lanes(["std/core/Int.terl"]) == ["shell", "workspace", "proofs", "terlan"].
+        and Plan.hosted_execution_lanes(["std/core/Int.terl"]) == ["shell", "proofs", "terlan"].
 
 @test
-pub proof_runtime_uses_one_canonical_workspace_suite(): Bool ->
-    Plan.execution_lanes(["crates/terlan/src/runtime/native_boundary/cancellation.rs"]) == ["shell", "clippy", "workspace", "proofs", "rust-reports"]
-        and Plan.execution_lanes(["proofs/lean/artifacts/shape-implication.json"]) == ["shell", "workspace", "proofs"].
+pub proof_runtime_uses_its_bounded_owner(): Bool ->
+    Plan.execution_lanes(["crates/terlan/src/runtime/native_boundary/cancellation.rs"]) == ["shell", "clippy", "runtime", "proofs", "rust-reports"]
+        and Plan.execution_lanes(["proofs/lean/artifacts/shape-implication.json"]) == ["shell", "proofs"].
 
 @test
 pub workspace_changes_supersede_owned_runtime_tests(): Bool ->

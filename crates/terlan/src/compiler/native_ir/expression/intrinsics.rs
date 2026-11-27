@@ -132,7 +132,8 @@ pub(super) fn lower_intrinsic(
             CorePrimitiveIntrinsic::IntToString
             | CorePrimitiveIntrinsic::IntToStringBase
             | CorePrimitiveIntrinsic::IntFromString
-            | CorePrimitiveIntrinsic::IntFromStringBase,
+            | CorePrimitiveIntrinsic::IntFromStringBase
+            | CorePrimitiveIntrinsic::IntCheckedMulDiv,
         ) => integer_intrinsics::lower_integer_intrinsic(
             call,
             params,

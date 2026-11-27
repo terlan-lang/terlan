@@ -232,9 +232,7 @@ pub(crate) fn load_current_cached_interface_syntax(
     let Ok(module) = expected_module_name_for_source_path(root, file) else {
         return None;
     };
-    let Some(manifest) = read_manifest(&cache_dir.join(format!("{module}.typi.deps"))) else {
-        return None;
-    };
+    let manifest = read_manifest(&cache_dir.join(format!("{module}.typi.deps")))?;
     if manifest.module != module
         || manifest.source_hash != fingerprint(source.as_bytes())
         || !syntax_contract_identity_matches_current(&manifest.syntax_contract_identity)

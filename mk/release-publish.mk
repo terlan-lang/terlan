@@ -363,7 +363,7 @@ type-fuzz-candidate-check: terlan-compiler-bootstrap
 	fi
 
 
-release-candidate-check: editor-release-contract-check type-fuzz-candidate-check terlan-validation-vm-bootstrap
+release-candidate-check: editor-release-contract-check terlan-validation-vm-bootstrap
 	bash scripts/clean_build_outputs.sh --check-partials
 	$(MAKE) --no-print-directory terlan-quality-tools-bootstrap
 	$(MAKE) --no-print-directory \

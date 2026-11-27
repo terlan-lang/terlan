@@ -403,6 +403,24 @@ pub fn run_cli() -> ExitCode {
         return ExitCode::from(1);
     }
     let executable_inputs = ledger.executables().clone();
+    let receipt_identity = match ledger.phase_receipt_input_identity() {
+        Ok(identity) => identity,
+        Err(error) => {
+            eprintln!("[rust-test-suite] phase receipt inputs: {}", error.detail);
+            return ExitCode::FAILURE;
+        }
+    };
+    println!("[rust-test-suite] phase receipt input identity {receipt_identity}");
+    let mut phase_receipts = match phase_receipts::Store::new(&environment, receipt_identity) {
+        Ok(receipts) => receipts,
+        Err(error) => {
+            eprintln!(
+                "[rust-test-suite] phase receipt admission: {}",
+                error.detail
+            );
+            return ExitCode::FAILURE;
+        }
+    };
     let selections = match test_inventory::prepare(
         &phases,
         coverage_owns_terlc,
@@ -427,23 +445,6 @@ pub fn run_cli() -> ExitCode {
         );
         return ExitCode::FAILURE;
     }
-    let receipt_identity = match ledger.phase_receipt_input_identity() {
-        Ok(identity) => identity,
-        Err(error) => {
-            eprintln!("[rust-test-suite] phase receipt inputs: {}", error.detail);
-            return ExitCode::FAILURE;
-        }
-    };
-    let mut phase_receipts = match phase_receipts::Store::new(&environment, receipt_identity) {
-        Ok(receipts) => receipts,
-        Err(error) => {
-            eprintln!(
-                "[rust-test-suite] phase receipt admission: {}",
-                error.detail
-            );
-            return ExitCode::FAILURE;
-        }
-    };
     for phase in phases {
         if phase.executor == PhaseExecutor::Cargo && rustdoc_inputs.targets.is_empty() {
             continue;

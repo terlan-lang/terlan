@@ -4,24 +4,12 @@
 
 A compiler built from the Rust bootstrap validates the Terlan repository by
 executing Terlan programs on the direct-AOT VM path. Python is not installed,
-invoked, embedded, or retained as a self-validation fallback. Six exact,
-inventoried LLM-native interoperability peers and historical evidence oracles
-remain independent of that validation path. The bootstrap builds `terlc`; it
-does not implement a second copy of repository validation rules.
-
-The canonical migration inventory is
-[`TERLAN_SELF_VALIDATION_INVENTORY.tsv`](TERLAN_SELF_VALIDATION_INVENTORY.tsv).
-The inventory records every retained Python path. Only the exact LLM-native
-peer and evidence paths listed there are admitted; repository self-validation
-does not execute them. All former repository-validation Python replacements
-have passed their accepted and adversarial fixtures, all Make/CI consumers
-select the Terlan replacements, and those replaced Python sources are deleted.
+invoked, embedded, or retained as a self-validation fallback. The bootstrap
+builds `terlc`; it does not implement a second copy of repository validation
+rules.
 
 ## Current Status
 
-- `make terlan-self-validation-inventory-check` is a direct-AOT Terlan gate and
-  proves that every retained Python source has one exact canonical inventory
-  row while pruning build, VCS, and dependency artifact directories.
 - `make terlan-self-validation-check` begins by materializing a clean,
   source-only temporary checkout, rejects unapproved Python source/cache
   artifacts and executable Python hooks, then runs the typed capability, generated std,

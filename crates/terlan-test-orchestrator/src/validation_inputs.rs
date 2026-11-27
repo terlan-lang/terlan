@@ -64,15 +64,44 @@ impl ValidationInputs {
         })?;
         let mut snapshot = self.snapshot();
         snapshot["source_binding"] = self.source.phase_receipt_json();
-        let bytes =
-            serde_json::to_vec(&semantic_admission(snapshot, &checkout)).map_err(|error| {
-                crate::PhaseFailure {
-                    outcome: "phase-receipt-failed",
-                    detail: error.to_string(),
-                }
-            })?;
+        let admission = semantic_admission(snapshot, &checkout);
+        for (name, identity) in component_identities(&admission)? {
+            println!("[rust-test-suite] phase receipt component {name} {identity}");
+        }
+        let bytes = serde_json::to_vec(&admission).map_err(|error| crate::PhaseFailure {
+            outcome: "phase-receipt-failed",
+            detail: error.to_string(),
+        })?;
         Ok(crate::file_identity::hex(Sha256::new_with_prefix(bytes)))
     }
+}
+
+/// Emits digest-only owners so an invalidated receipt identifies its cause.
+fn component_identities(
+    admission: &serde_json::Value,
+) -> Result<Vec<(String, String)>, crate::PhaseFailure> {
+    use sha2::{Digest, Sha256};
+
+    let fields = admission.as_object().ok_or_else(|| crate::PhaseFailure {
+        outcome: "phase-receipt-failed",
+        detail: "phase receipt admission is not an object".into(),
+    })?;
+    fields
+        .iter()
+        .map(|(name, value)| {
+            serde_json::to_vec(value)
+                .map(|bytes| {
+                    (
+                        name.clone(),
+                        crate::file_identity::hex(Sha256::new_with_prefix(bytes)),
+                    )
+                })
+                .map_err(|error| crate::PhaseFailure {
+                    outcome: "phase-receipt-failed",
+                    detail: error.to_string(),
+                })
+        })
+        .collect()
 }
 
 /// Removes observations and checkout placement while preserving relative names,
@@ -85,7 +114,13 @@ fn semantic_admission(value: serde_json::Value, checkout: &Path) -> serde_json::
                 .filter(|(name, _)| {
                     !matches!(
                         name.as_str(),
-                        "after" | "verified" | "paths_verified" | "run_id" | "reusable"
+                        "after"
+                            | "verified"
+                            | "paths_verified"
+                            | "run_id"
+                            | "reusable"
+                            | "resolver_cache"
+                            | "metadata_sha256"
                     )
                 })
                 .map(|(name, value)| (name, semantic_admission(value, checkout)))
@@ -94,6 +129,16 @@ fn semantic_admission(value: serde_json::Value, checkout: &Path) -> serde_json::
         serde_json::Value::Array(values) => serde_json::Value::Array(
             values
                 .into_iter()
+                .filter(|value| {
+                    // These are deterministic products of the already-bound
+                    // source, toolchain, Cargo configuration, and metadata.
+                    // Binding their rebuilt bytes makes resumable validation
+                    // depend on linker output rather than semantic inputs.
+                    !matches!(
+                        value.get("role").and_then(serde_json::Value::as_str),
+                        Some("terlan-test-orchestrator" | "terlan-library-harness")
+                    )
+                })
                 .map(|value| semantic_admission(value, checkout))
                 .collect(),
         ),
