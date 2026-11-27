@@ -766,6 +766,7 @@ run_focused_rust_binary() {
 
 run_affected_rust_lane() {
   local lane=$1 filter
+  local -a local_features=()
   affected_rust_lane_supported=true
   case "$lane" in
     commands-test) run_commands_test_lane ;;
@@ -827,7 +828,12 @@ run_affected_rust_lane() {
     syntax|compiler)
       filter=compiler::
       if [[ "$lane" == syntax ]]; then filter=compiler::syntax::; fi
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib "$filter"
+      if lane_has phase; then
+        echo "pre-commit: $lane and phase tests share validation-union artifact"
+        local_features=(--features validation-union)
+      fi
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
+        "${local_features[@]}" "$filter"
       ;;
     workspace)
       run_workspace_suite
