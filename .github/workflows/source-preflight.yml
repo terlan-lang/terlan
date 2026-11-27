@@ -102,10 +102,27 @@ jobs:
           allow-compatible-fallback: "true"
       - name: Check Rust lint allowance policy
         if: ${{ inputs.rust_format }}
+        env:
+          BASE_REVISION: ${{ inputs.base_revision }}
+          HEAD_REVISION: ${{ inputs.head_revision }}
+          FORMAT_ALL: ${{ inputs.rust_format_all }}
         run: |
-          ${{ steps.script-runner.outputs.vm }} run \
-            ${{ steps.script-runner.outputs.rust-quality-image }} \
-            --script-eval -- lint-allowance-check
+          mapfile -d '' -t changed_rust < <(
+            git diff --name-only -z --diff-filter=ACMR \
+              "$BASE_REVISION" "$HEAD_REVISION" -- '*.rs'
+          )
+          if [[ "$FORMAT_ALL" == true ]] || ! git diff --quiet \
+            "$BASE_REVISION" "$HEAD_REVISION" -- \
+            docs/quality/RUST_LINT_ALLOWANCES.tsv \
+            scripts/self_validation/rust_quality; then
+            ${{ steps.script-runner.outputs.vm }} run \
+              ${{ steps.script-runner.outputs.rust-quality-image }} \
+              --script-eval -- lint-allowance-check
+          else
+            ${{ steps.script-runner.outputs.vm }} run \
+              ${{ steps.script-runner.outputs.rust-quality-image }} \
+              --script-eval -- lint-allowance-changed-check "${changed_rust[@]}"
+          fi
       - name: Check changed Rust file sizes
         if: ${{ inputs.rust_format }}
         env:
