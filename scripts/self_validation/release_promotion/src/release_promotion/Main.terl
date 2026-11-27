@@ -6,7 +6,7 @@ module release_promotion.Main.
 import release_promotion.CandidateFiles.{basename}.
 import release_promotion.{CandidateEvidenceTest, CandidateFixture, CandidateInputs, Preflight, PreparationCommands, PreparationGraphTest, PreparationOwnerTest, ProcessActivityTest, PublicationBundle, PublicationCacheTest, PublicationChecks, PublicationPlan, Readiness}.
 import std.collections.List.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, with_default, with_default_else}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String}.
 import std.crypto.Hash.
@@ -41,10 +41,7 @@ child(parent: String, relative: String): String ->
     }.
 
 repository_root(): String ->
-    case Environment.get("TERLAN_RELEASE_ROOT") {
-        Some(value) -> value;
-        None -> Environment.current_directory()
-    }.
+    Environment.get("TERLAN_RELEASE_ROOT").with_default_else(() -> Environment.current_directory()).
 
 document_failure(message: String): DocumentResult ->
     DocumentResult(valid = false, document = Json.null(), message = message).
@@ -240,10 +237,8 @@ seal(root: String, version: String): Bool ->
         if {
             not sealed.valid -> fail(sealed.message);
             true -> let path =
-                case Environment.get("TERLAN_RELEASE_CANDIDATE_OUTPUT") {
-                    Some(path) -> path;
-                    None -> child(root, "dist/release-candidate.json")
-                };
+                Environment.get("TERLAN_RELEASE_CANDIDATE_OUTPUT")
+                    .with_default(child(root, "dist/release-candidate.json"));
             if {
                 write_json(path, sealed.document) -> let _printed = println("sealed release candidate: dist/release-candidate.json");
                 true;
@@ -552,10 +547,7 @@ fail(message: String): Bool ->
     false.
 
 argument(index: Int): String ->
-    case Arguments.get(index) {
-        Some(value) -> value;
-        None -> ""
-    }.
+    Arguments.get(index).with_default("").
 
 attest_existing(root: String, version: String): Bool ->
     let candidate = verify(root, version);

@@ -3,7 +3,7 @@
  */
 module docs_static_release_parity.Artifact.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, with_default}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.crypto.Hash.
@@ -39,10 +39,7 @@ pub struct ReleasePlatform {
 }.
 
 environment_or_host(name: String, fallback: String): String ->
-    case Environment.get(name) {
-        Some(value) -> value;
-        None -> fallback
-    }.
+    Environment.get(name).with_default(fallback).
 
 normalize_os(raw: String): Option[String] ->
     let value = String.lowercase(String.trim(raw));

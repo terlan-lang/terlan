@@ -4,7 +4,7 @@
 module scripts.self_validation.RepositoryValidationMain.
 
 import std.collections.List.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, with_default, with_default_else}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.crypto.Hash.
@@ -31,16 +31,12 @@ failure(code: String, message: String): Bool ->
     false.
 
 root(): String ->
-    case Environment.get("TERLAN_REPOSITORY_ROOT") {
-        Some(value) -> value;
-        None -> Environment.current_directory()
-    }.
+    Environment.get("TERLAN_REPOSITORY_ROOT")
+        .with_default_else(() -> Environment.current_directory()).
 
 compiler(repository: String): String ->
-    case Environment.get("TERLAN_REPOSITORY_VALIDATION_TERLC") {
-        Some(value) -> value;
-        None -> child(repository, "target/debug/terlc")
-    }.
+    Environment.get("TERLAN_REPOSITORY_VALIDATION_TERLC")
+        .with_default(child(repository, "target/debug/terlc")).
 
 @pure
 child(parent: String, relative: String): String ->

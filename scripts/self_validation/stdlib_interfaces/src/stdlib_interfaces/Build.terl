@@ -4,7 +4,7 @@
 module stdlib_interfaces.Build.
 
 import std.collections.List.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, with_default}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.io.Console.{println}.
@@ -35,10 +35,7 @@ child(root: String, relative: String): String ->
     }.
 
 environment_or(name: String, fallback: String): String ->
-    case Environment.get(name) {
-        Some(value) -> value;
-        None -> fallback
-    }.
+    Environment.get(name).with_default(fallback).
 
 argument_value(name: String): Option[String] ->
     argument_value_at(name, 0, Arguments.count()).

@@ -4,7 +4,7 @@
 module release_closeout.Support.
 
 import std.collections.List.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, map, with_default, with_default_else}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.crypto.Hash.
@@ -40,10 +40,8 @@ pub struct CommandResult {
 }.
 
 pub repository_root(): String ->
-    case Environment.get("TERLAN_RELEASE_CLOSEOUT_ROOT") {
-        Some(value) -> value;
-        None -> Environment.current_directory()
-    }.
+    Environment.get("TERLAN_RELEASE_CLOSEOUT_ROOT")
+        .with_default_else(() -> Environment.current_directory()).
 
 @pure
 pub child(parent: String, relative: String): String ->
@@ -81,10 +79,7 @@ platform_artifact(): Option[{String, String, String}] ->
  * Returns the installed release archive name for the current host.
  */
 pub release_artifact_name(): Option[String] ->
-    case platform_artifact() {
-        Some({name, _suffix, _separator}) -> Some(name);
-        None -> None
-    }.
+    platform_artifact().map(({name, _suffix, _separator}) -> name).
 
 version_from_lines(lines: List[String]): String ->
     case lines {
@@ -138,11 +133,7 @@ let vm = child(installed, String.append("terlan-vm", suffix));
 let worker = child(installed, String.append("terlan-native-worker", suffix));
 let lsp = child(installed, String.append("terlan-lsp", suffix));
 let version = workspace_version(root);
-let inherited_path =
-    case Environment.get("PATH") {
-        Some(value) -> value;
-        None -> ""
-    };
+let inherited_path = Environment.get("PATH").with_default("");
 if {
     version == ""
         or not File.exists(compiler)

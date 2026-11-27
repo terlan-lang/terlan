@@ -6,7 +6,7 @@ module docs_static_release_parity.Main.
 import docs_static_release_parity.editor_release_parity.Main as EditorReleaseParity.
 import docs_static_release_parity.{Artifact, Support}.
 import std.collections.List.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, and_then, with_default_else}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.crypto.Hash.
@@ -53,10 +53,8 @@ pub editor_release_parity_artifact_size_entry(): Unit ->
     EditorReleaseParity.artifact_size_entry().
 
 repository_root(): String ->
-    case Environment.get("TERLAN_REPOSITORY_ROOT") {
-        Some(path) -> path;
-        None -> Environment.current_directory()
-    }.
+    Environment.get("TERLAN_REPOSITORY_ROOT")
+        .with_default_else(() -> Environment.current_directory()).
 
 report_path(repository: String): String ->
     Support.child(repository, "target/quality/docs-static-release-parity-report.json").
@@ -576,10 +574,7 @@ write_summary(path: String, summary: SiteSummary): Bool ->
     Support.write_json(path, Support.site_summary_json(summary)).
 
 read_summary(path: String): Option[SiteSummary] ->
-    case read_json(path) {
-        Some(value) -> Support.site_summary_from_json(value);
-        None -> None
-    }.
+    read_json(path).and_then((value) -> Support.site_summary_from_json(value)).
 
 /**
  * Extracts the release once and generates the first deterministic site.

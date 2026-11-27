@@ -3,7 +3,7 @@
  */
 module tvm_aot_platform_matrix.ReleaseCloseout.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, with_default}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.crypto.Hash.{sha256_file}.
@@ -352,27 +352,25 @@ host_contract(root: String, revision: String): Option[Json] ->
         Some(target) ->
             let relative = String.concat(["target/quality/tvm-aot-platform/", target.id, ".json"]);
             let path = child(root, relative);
-            when {
-                Some(report) <- load_json(path);
-                Some(source_revision) <- json_string(report, "source_revision");
-                Some(digest) <- file_digest(path)
-            } else {
-                _ -> none_with_failure("cannot load executable host platform evidence")
-            };
-            if {
-                not report_valid(report, target) -> none_with_failure("host platform report is invalid");
-                not String.starts_with(revision, source_revision) -> none_with_failure("host platform report belongs to another revision");
-                true -> Some(
-                    Json.object()
-                        .put("supported_targets", target_ids(targets(), Json.array()))
-                        .put(
-                            "host_report",
-                            Json.object()
-                                .put("path", Json.string(relative))
-                                .put("sha256", Json.string(digest)),
-                        ),
-                )
-            }
+            (when {
+    Some(report) <- load_json(path);
+    Some(source_revision) <- json_string(report, "source_revision");
+    Some(digest) <- file_digest(path)
+} else {
+    _ -> none_with_failure("cannot load executable host platform evidence")
+};
+if {
+    not report_valid(report, target) -> none_with_failure("host platform report is invalid");
+    not String.starts_with(revision, source_revision) -> none_with_failure("host platform report belongs to another revision");
+    true -> Some(
+        Json.object()
+            .put("supported_targets", target_ids(targets(), Json.array()))
+            .put(
+                "host_report",
+                Json.object().put("path", Json.string(relative)).put("sha256", Json.string(digest)),
+            ),
+    )
+})
     }.
 
 sanitizer_evidence(root: String, revision: String): Option[Json] ->
@@ -476,10 +474,8 @@ closeout_report(
 
 write_closeout(root: String, report: Json, revision: String): Bool ->
     let output =
-        case Environment.get("TERLAN_AOT_RELEASE_OUTPUT") {
-            Some(path) -> path;
-            None -> child(root, "target/quality/tvm-aot-release-closeout-report.json")
-        };
+        Environment.get("TERLAN_AOT_RELEASE_OUTPUT")
+            .with_default(child(root, "target/quality/tvm-aot-release-closeout-report.json"));
     let _directory = create_all(child(root, "target/quality"));
     if {
         not write_json(output, report) -> false;

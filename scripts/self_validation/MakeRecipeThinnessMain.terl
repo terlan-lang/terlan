@@ -4,7 +4,7 @@
 module scripts.self_validation.MakeRecipeThinnessMain.
 
 import std.collections.List.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, with_default}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.io.Console.{println}.
@@ -16,10 +16,7 @@ import type std.core.Option.
 import type std.io.File.TextFile.
 
 environment_or(name: String, fallback: String): String ->
-    case Environment.get(name) {
-        Some(value) -> value;
-        None -> fallback
-    }.
+    Environment.get(name).with_default(fallback).
 
 @pure
 is_make_source(path: String): Bool ->

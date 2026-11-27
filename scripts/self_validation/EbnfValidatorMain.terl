@@ -3,7 +3,7 @@
  */
 module scripts.self_validation.EbnfValidatorMain.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, with_default, with_default_else}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.data.Json.
@@ -32,16 +32,10 @@ struct ReportSummary {
 }.
 
 root(): String ->
-    case Environment.get("TERLAN_EBNF_ROOT") {
-        Some(value) -> value;
-        None -> Environment.current_directory()
-    }.
+    Environment.get("TERLAN_EBNF_ROOT").with_default_else(() -> Environment.current_directory()).
 
 compiler(repository: String): String ->
-    case Environment.get("TERLAN_EBNF_COMPILER") {
-        Some(value) -> value;
-        None -> join(repository, "target/debug/terlc")
-    }.
+    Environment.get("TERLAN_EBNF_COMPILER").with_default(join(repository, "target/debug/terlc")).
 
 join(parent: String, child: String): String ->
     if {

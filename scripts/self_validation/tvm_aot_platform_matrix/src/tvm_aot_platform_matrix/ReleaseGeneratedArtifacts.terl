@@ -4,7 +4,7 @@
 module tvm_aot_platform_matrix.ReleaseGeneratedArtifacts.
 
 import std.collections.List.{concat, length}.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, map}.
 import std.core.Ordering.{Lt}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
@@ -314,10 +314,7 @@ current_snapshot(root: String): Option[{String, List[Artifact], Snapshot}] ->
     };
     if {
         not artifacts_valid(artifacts) or not gates_exist(artifacts, targets) -> None;
-        true -> case snapshot(root, artifacts, source) {
-            Some(value) -> Some({source, artifacts, value});
-            None -> None
-        }
+        true -> snapshot(root, artifacts, source).map((value) -> {source, artifacts, value})
     }.
 
 write_json(path: String, value: Json): Bool ->
