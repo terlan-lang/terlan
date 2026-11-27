@@ -267,7 +267,6 @@ release-artifact-set-check: | terlan-repository-validation-bootstrap
 release-code-hygiene-check: \
 	rust-warnings-check \
 	rust-quality-check \
-	rust-file-headroom-check \
 	dormant-runtime-code-check \
 	vm-deterministic-hashmap-check \
 	shared-helper-check \

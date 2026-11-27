@@ -820,6 +820,10 @@ run_affected_rust_lane() {
     validation)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib validation::
       ;;
+    quality)
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
+        --features=quality-tools quality::
+      ;;
     syntax|compiler)
       filter=compiler::
       if [[ "$lane" == syntax ]]; then filter=compiler::syntax::; fi
@@ -1234,7 +1238,7 @@ while IFS= read -r lane; do
         if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi
       done < "$changes"
       ;;
-    clippy|cli-integration|core-contracts|phase|commands|commands-emit-js|commands-test|commands-vm-artifact|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-construction|native-ir|runtime|validation|syntax|compiler|workspace|dependencies|native-planning|process-owner|type-fuzz|test-orchestrator)
+    clippy|cli-integration|core-contracts|phase|commands|commands-emit-js|commands-test|commands-vm-artifact|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-construction|native-ir|runtime|validation|quality|syntax|compiler|workspace|dependencies|native-planning|process-owner|type-fuzz|test-orchestrator)
       echo "pre-commit: duplicate affected Rust lane remained scheduled: $lane" >&2
       exit 1
       ;;

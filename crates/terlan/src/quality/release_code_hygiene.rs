@@ -16,7 +16,6 @@ const GATE_TARGET: &str = "release-code-hygiene-check";
 const REQUIRED_SUB_GATES: &[&str] = &[
     "rust-warnings-check",
     "rust-quality-check",
-    "rust-file-headroom-check",
     "dormant-runtime-code-check",
     "vm-deterministic-hashmap-check",
     "shared-helper-check",

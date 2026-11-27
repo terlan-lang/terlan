@@ -569,6 +569,10 @@ pub report_validator_changes_check_their_reports(): Bool ->
     Plan.lanes(["scripts/self_validation/rust_quality/src/rust_quality/ApiBoundary.terl"]) == ["shell", "rust-reports", "terlan"].
 
 @test
+pub compiler_quality_changes_use_the_focused_quality_lane(): Bool ->
+    Plan.lanes(["crates/terlan/src/quality/release_code_hygiene.rs"]) == ["shell", "clippy", "rust-reports", "quality"].
+
+@test
 pub report_runner_changes_execute_report_checks(): Bool ->
     Plan.lanes(["scripts/git_hooks/rust_reports.sh"]) == ["shell", "rust-reports"].
 

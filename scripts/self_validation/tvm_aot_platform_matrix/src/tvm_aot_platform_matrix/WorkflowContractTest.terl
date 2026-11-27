@@ -118,9 +118,11 @@ pub source_preflight_never_compiles_rust_tests(): Bool ->
     };
     workflow.contains("name: Check Rust lint allowance policy")
         and workflow.contains("name: Check Rust lint allowance policy\n        if: $")
-        and workflow.contains("name: Check Rust file size policy\n        if: $")
+        and workflow.contains("name: Check changed Rust file sizes\n        if: $")
         and workflow.contains("steps.script-runner.outputs.rust-quality-image")
         and workflow.contains("lint-allowance-check")
+        and workflow.contains("git diff-tree --no-commit-id --name-only --diff-filter=ACMR")
+        and workflow.contains("file-size-changed-check")
         and not workflow.contains("cargo test")
         and not workflow.contains("cache-build: \"true\"")
         and workflow.contains("cache-registry: \"false\"")

@@ -254,6 +254,9 @@ pub validation(paths: List[String]): Bool ->
     affected(paths, "crates/terlan/src/validation/", ".rs")
         or affected(paths, "crates/terlan/src/validation.rs", "").
 
+pub quality(paths: List[String]): Bool ->
+    affected(paths, "crates/terlan/src/quality/", ".rs").
+
 pub workspace(paths: List[String]): Bool ->
     general_fixtures(paths) or non_owned_rust(paths).
 
@@ -344,6 +347,7 @@ non_owned_rust(paths: List[String]): Bool ->
     and not String.starts_with(path, "crates/terlan/src/vm/")
     and not String.starts_with(path, "crates/terlan/src/validation/")
     and path != "crates/terlan/src/validation.rs"
+    and not String.starts_with(path, "crates/terlan/src/quality/")
     and path != "crates/terlan/build.rs"
     and not String.starts_with(path, "crates/terlan-test-orchestrator/")
     and not String.starts_with(path, "crates/terlan-native-planning/")
@@ -795,6 +799,11 @@ pub lanes(paths: List[String]): List[String] ->
             validation(paths) -> ["validation"];
             true -> List.new[String]()
         };
+    let quality_rust =
+        if {
+            quality(paths) -> ["quality"];
+            true -> List.new[String]()
+        };
     let workspace_rust =
         if {
             workspace(paths) -> ["workspace"];
@@ -813,7 +822,10 @@ pub lanes(paths: List[String]): List[String] ->
                             cli_rust,
                             append(
                                 compiler_rust,
-                                append(runtime_rust, append(validation_rust, workspace_rust)),
+                                append(
+                                    runtime_rust,
+                                    append(validation_rust, append(quality_rust, workspace_rust)),
+                                ),
                             ),
                         ),
                     ),
@@ -944,6 +956,7 @@ workspace_test_subset(lane: String): Bool ->
         or lane == "phase"
         or lane == "runtime"
         or lane == "validation"
+        or lane == "quality"
         or lane == "cli-integration"
         or lane == "test-orchestrator"
         or lane == "rust-boundary-audit"
@@ -988,6 +1001,7 @@ test_lane_priority(): List[String] ->
         "phase",
         "runtime",
         "validation",
+        "quality",
         "workspace",
         "native-planning",
         "process-owner",
