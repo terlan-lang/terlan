@@ -6,7 +6,7 @@ module release_promotion.NativeCycle.
 
 import release_promotion.{NativeActivity, OwnerNative, OwnerStorage, PreparationOwner}.
 import std.collections.List.{concat}.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, with_default}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.crypto.Hash.
@@ -113,10 +113,7 @@ pub open(root: String, candidate: String, graph: String): Result[Json, String] -
     Ok(state).
 
 pub active(state: Json): String ->
-    case OwnerStorage.text(state, "active_owner") {
-        Some(owner) -> owner;
-        None -> ""
-    }.
+    OwnerStorage.text(state, "active_owner").with_default("").
 
 activity_path(root: String, owner: Owner): String ->
     when {

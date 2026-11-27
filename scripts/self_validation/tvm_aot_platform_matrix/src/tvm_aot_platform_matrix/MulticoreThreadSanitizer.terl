@@ -3,7 +3,7 @@
  */
 module tvm_aot_platform_matrix.MulticoreThreadSanitizer.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, map}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.crypto.Hash.{sha256_file}.
@@ -91,10 +91,7 @@ run_command(
     }.
 
 command_output(root: String, program: String, arguments: List[String]): Option[String] ->
-    case run_command(root, program, arguments, []) {
-        Some(output) -> Some(String.trim(output.stdout));
-        None -> None
-    }.
+    run_command(root, program, arguments, []).map((output: Output) -> String.trim(output.stdout)).
 
 string_member(values: List[String], expected: String): Bool ->
     case values {

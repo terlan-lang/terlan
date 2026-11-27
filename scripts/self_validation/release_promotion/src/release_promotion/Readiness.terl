@@ -5,7 +5,7 @@ module release_promotion.Readiness.
 
 import release_promotion.EvidenceReports.
 import std.collections.List.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, with_default}.
 import std.core.Result.{Err, Ok}.
 import std.core.{String, Unit}.
 import std.crypto.Hash.
@@ -150,10 +150,8 @@ archive_hash_holds(root: String, path: String, digest: String): Bool ->
 
 write_report(root: String, candidate: Json, archive: String, digest: String): Bool ->
     let output =
-        case Environment.get("TERLAN_READINESS_OUTPUT") {
-            Some(path) -> path;
-            None -> child(root, "target/quality/release-readiness-attestation-report.json")
-        };
+        Environment.get("TERLAN_READINESS_OUTPUT")
+            .with_default(child(root, "target/quality/release-readiness-attestation-report.json"));
     let report =
         Json.object()
             .put("schema", Json.string("terlan.release-readiness-attestation.v1"))

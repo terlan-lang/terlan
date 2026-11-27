@@ -561,10 +561,8 @@ attest_existing(root: String, version: String): Bool ->
 pub entry(): Bool ->
     let root = repository_root();
     let command = argument(0);
-    case PreparationCommands.run(root, command, argument(1), argument(2), argument(3)) {
-        Some(result) -> result;
-        None -> publication_entry(root, command)
-    }.
+    PreparationCommands.run(root, command, argument(1), argument(2), argument(3))
+        .with_default_else(() -> publication_entry(root, command)).
 
 publication_entry(root: String, command: String): Bool ->
     let version =

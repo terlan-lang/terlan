@@ -5,7 +5,7 @@ module release_control.Main.
 
 import release_control.{Acceptance, Fixtures, Status, Submit, Support, Tag, Tests, Version}.
 import std.collections.List.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, with_default}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String}.
 import std.data.Json.
@@ -23,10 +23,7 @@ struct DispatchState {
 }.
 
 argument(index: Int, fallback: String): String ->
-    case Arguments.get(index) {
-        Some(value) -> value;
-        None -> fallback
-    }.
+    Arguments.get(index).with_default(fallback).
 
 wait_seconds(): Result[Int, String] ->
     case Environment.get("TERLAN_RELEASE_WAIT_SECONDS") {

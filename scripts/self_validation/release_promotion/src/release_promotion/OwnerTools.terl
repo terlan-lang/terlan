@@ -5,7 +5,7 @@ module release_promotion.OwnerTools.
 
 import release_promotion.{OwnerStorage, PreparationOwner}.
 import std.collections.List.
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, with_default}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.crypto.Hash.
@@ -120,11 +120,7 @@ pub configuration(root: String, env: List[EnvironmentEntry]): Result[String, Str
     } else {
         _ -> Err("preparation requires an explicit HOME")
     };
-    (let cargo_home =
-    case setting(env, "CARGO_HOME") {
-        Some(value) -> value;
-        None -> OwnerStorage.child(home, ".cargo")
-    };
+    (let cargo_home = setting(env, "CARGO_HOME").with_default(OwnerStorage.child(home, ".cargo"));
 (when {
     Ok(ancestors) <- configs(root, Json.array());
     Ok(legacy) <- config(OwnerStorage.child(cargo_home, "config"), ancestors);

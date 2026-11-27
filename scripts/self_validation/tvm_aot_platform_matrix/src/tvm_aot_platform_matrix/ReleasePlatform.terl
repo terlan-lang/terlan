@@ -3,7 +3,7 @@
  */
 module tvm_aot_platform_matrix.ReleasePlatform.
 
-import std.core.Option.{None, Some}.
+import std.core.Option.{None, Some, with_default, with_default_else}.
 import std.core.Result.{Err, Ok}.
 import std.core.{String}.
 import std.data.Json.
@@ -104,10 +104,7 @@ pub resolve(raw_os: String, raw_arch: String): Option[ReleasePlatform] ->
     }.
 
 environment_or(name: String, fallback: String): String ->
-    case Environment.get(name) {
-        Some(value) -> value;
-        None -> fallback
-    }.
+    Environment.get(name).with_default(fallback).
 
 /**
  * Resolves explicit release overrides before falling back to normalized host identity.
@@ -135,18 +132,14 @@ default_triple(platform: ReleasePlatform): String ->
  * Resolves the release triple with the same override precedence as Cargo tooling.
  */
 pub target_triple(platform: ReleasePlatform): String ->
-    case Environment.get("TERLAN_RELEASE_TARGET_TRIPLE") {
-        Some(value) -> value;
-        None ->
-            case Environment.get("CARGO_BUILD_TARGET") {
-                Some(value) -> value;
-                None ->
-                    case Environment.get("TARGET") {
-                        Some(value) -> value;
-                        None -> default_triple(platform)
-                    }
-            }
-    }.
+    Environment.get("TERLAN_RELEASE_TARGET_TRIPLE")
+        .with_default_else(
+            () ->
+                Environment.get("CARGO_BUILD_TARGET")
+                    .with_default_else(
+                        () -> Environment.get("TARGET").with_default(default_triple(platform)),
+                    ),
+        ).
 
 version_from_lines(lines: List[String]): Option[String] ->
     case lines {
