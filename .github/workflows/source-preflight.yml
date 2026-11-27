@@ -98,6 +98,8 @@ jobs:
       - name: Setup Terlan script runner
         id: script-runner
         uses: ./.github/actions/setup-terlan-script-runner
+        with:
+          allow-compatible-fallback: "true"
       - name: Check Rust lint allowance policy
         if: ${{ inputs.rust_format }}
         run: |

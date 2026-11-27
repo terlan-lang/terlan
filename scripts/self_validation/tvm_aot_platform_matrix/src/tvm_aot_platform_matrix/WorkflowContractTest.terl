@@ -118,6 +118,7 @@ pub source_preflight_never_compiles_rust_tests(): Bool ->
     };
     workflow.contains("name: Check Rust lint allowance policy")
         and workflow.contains("name: Check Rust lint allowance policy\n        if: $")
+        and workflow.contains("allow-compatible-fallback: \"true\"")
         and workflow.contains("name: Check changed Rust file sizes\n        if: $")
         and workflow.contains("steps.script-runner.outputs.rust-quality-image")
         and workflow.contains("lint-allowance-check")
