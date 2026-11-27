@@ -74,10 +74,12 @@ pub script_runner_cache_is_compact_and_versioned(): Bool ->
     } else {
         Err(_reason) -> false
     };
-    action.contains("terlan-script-runner-v6-")
+    action.contains("terlan-script-runner-v7-")
         and action.contains("allow-compatible-fallback:")
         and action.contains("default: \"false\"")
         and action.contains("target/script-runner/terlan-native-worker")
+        and action.contains("target/script-runner/terlan-quality")
+        and action.contains("--bin terlan-quality --features validation-union")
         and action.contains("native-worker=$GITHUB_WORKSPACE/target/script-runner/terlan-native-worker")
         and action.contains("!crates/**/*_test.rs")
         and action.contains("!crates/**/*_test/**/*.rs")
@@ -196,9 +198,11 @@ pub script_runner_never_relabels_an_old_compiler_as_current(): Bool ->
     } else {
         Err(_reason) -> false
     };
-    action.contains("terlan-script-runner-v6-")
+    action.contains("terlan-script-runner-v7-")
         and action.contains("key: \${{ steps.identity.outputs.key }}")
         and action.contains("if: \${{ steps.restored.outputs.usable != 'true' }}")
+        and workflow.contains("validation-tools: \"true\"")
+        and workflow.contains("TERLAN_HOOK_LATEST_IS_EXACT: \"1\"")
         and occurrences(workflow, "allow-compatible-fallback: \"true\"") == 1.
 
 @test

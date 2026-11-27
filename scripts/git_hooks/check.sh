@@ -9,6 +9,8 @@ hosted_source_preflight=${TERLAN_HOSTED_SOURCE_PREFLIGHT:-0}
 case "$hosted_source_preflight" in 0|1) ;; *) echo "unsupported hosted source-preflight mode: $hosted_source_preflight" >&2; exit 2 ;; esac
 hosted_dependency_audit=${TERLAN_HOSTED_DEPENDENCY_AUDIT:-0}
 case "$hosted_dependency_audit" in 0|1) ;; *) echo "unsupported hosted dependency-audit mode: $hosted_dependency_audit" >&2; exit 2 ;; esac
+latest_compiler_is_exact=${TERLAN_HOOK_LATEST_IS_EXACT:-0}
+case "$latest_compiler_is_exact" in 0|1) ;; *) echo "unsupported exact latest-compiler mode: $latest_compiler_is_exact" >&2; exit 2 ;; esac
 test ! -L "$CARGO_TARGET_DIR"
 mkdir -p "$CARGO_TARGET_DIR"
 validation_tmp="/tmp/terlan-validation-attempt.$$"
@@ -618,20 +620,29 @@ activate_staged_candidate_compiler() {
   if [[ "$compiler_build" == false ]]; then
     return
   fi
-  echo 'pre-commit: build and activate exact staged compiler'
-  cargo build --locked -p terlan \
-    --bin terlc --bin terlan-vm --bin terlan-native-worker
-  [[ -x "$target_terlc" && ! -L "$target_terlc" ]]
-  [[ -x "$CARGO_TARGET_DIR/debug/terlan-vm" \
-    && ! -L "$CARGO_TARGET_DIR/debug/terlan-vm" ]]
-  [[ -x "$CARGO_TARGET_DIR/debug/terlan-native-worker" \
-    && ! -L "$CARGO_TARGET_DIR/debug/terlan-native-worker" ]]
+  local source_directory
+  if [[ "$latest_compiler_is_exact" == 1 ]]; then
+    [[ -n ${TERLAN_HOOK_LATEST_TERLC:-} \
+      && "$terlc" == "$TERLAN_HOOK_LATEST_TERLC" ]]
+    source_directory=$(dirname "$terlc")
+    echo 'pre-commit: activate exact hosted compiler'
+  else
+    echo 'pre-commit: build and activate exact staged compiler'
+    cargo build --locked -p terlan \
+      --bin terlc --bin terlan-vm --bin terlan-native-worker
+    source_directory="$CARGO_TARGET_DIR/debug"
+  fi
+  [[ -x "$source_directory/terlc" && ! -L "$source_directory/terlc" ]]
+  [[ -x "$source_directory/terlan-vm" \
+    && ! -L "$source_directory/terlan-vm" ]]
+  [[ -x "$source_directory/terlan-native-worker" \
+    && ! -L "$source_directory/terlan-native-worker" ]]
   mkdir -p "$candidate_snapshot_directory"
   local source destination temporary
   for source in \
-    "$target_terlc" \
-    "$CARGO_TARGET_DIR/debug/terlan-vm" \
-    "$CARGO_TARGET_DIR/debug/terlan-native-worker"; do
+    "$source_directory/terlc" \
+    "$source_directory/terlan-vm" \
+    "$source_directory/terlan-native-worker"; do
     destination="$candidate_snapshot_directory/${source##*/}"
     temporary="$destination.tmp.$$"
     install -m 755 "$source" "$temporary"

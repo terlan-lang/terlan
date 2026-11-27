@@ -720,6 +720,9 @@ candidate_activation_block=$(sed -n \
   '/^activate_staged_candidate_compiler()/,/^}/p' "$check_driver")
 grep -Fq "echo 'pre-commit: build and activate exact staged compiler'" \
   <<< "$candidate_activation_block"
+grep -Fq "echo 'pre-commit: activate exact hosted compiler'" \
+  <<< "$candidate_activation_block"
+grep -Fq 'latest_compiler_is_exact' <<< "$candidate_activation_block"
 grep -Fq -- '--bin terlc --bin terlan-vm --bin terlan-native-worker' \
   <<< "$candidate_activation_block"
 grep -Fq 'mv "$temporary_receipt" "$compiler_input_receipt"' \

@@ -33,6 +33,10 @@ inputs:
     description: Require the native worker beside the cached compiler
     required: false
     default: "false"
+  validation-tools:
+    description: Require validation tools beside the cached compiler
+    required: false
+    default: "false"
 
 runs:
   using: composite
@@ -41,7 +45,7 @@ runs:
       id: identity
       shell: bash
       run: |
-        key="${RUNNER_OS}-${RUNNER_ARCH}-terlan-script-runner-v6-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'crates/**/*.rs', '!crates/**/*_test.rs', '!crates/**/*_tests.rs', '!crates/**/*_test/**/*.rs', '!crates/**/*_tests/**/*.rs', '!crates/**/test/**/*.rs', '!crates/**/tests/**/*.rs') }}"
+        key="${RUNNER_OS}-${RUNNER_ARCH}-terlan-script-runner-v7-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'crates/**/*.rs', 'std/summaries/**/*.typi', '!crates/**/*_test.rs', '!crates/**/*_tests.rs', '!crates/**/*_test/**/*.rs', '!crates/**/*_tests/**/*.rs', '!crates/**/test/**/*.rs', '!crates/**/tests/**/*.rs') }}"
         echo "key=$key" >> "$GITHUB_OUTPUT"
         echo "classifier-sources=${{ hashFiles('std/**/*.terl', 'std/**/*.terli', 'scripts/ci/scripts/ClassifyChanges.terls', 'scripts/ci/src/ci/ChangeClassifier.terl') }}" >> "$GITHUB_OUTPUT"
         echo "program-sources=${{ hashFiles('std/**/*.terl', 'std/**/*.terli', 'scripts/ci/scripts/CheckRustFormatting.terls', 'scripts/ci/scripts/CheckTerlanStyle.terls', 'scripts/ci/src/ci/FormattingTools.terl', 'scripts/ci/src/ci/RustFormatting.terl', 'scripts/ci/src/ci/TerlanStyle.terl', 'scripts/self_validation/rust_quality/**/*.terl', 'scripts/self_validation/rust_quality/**/*.terls', 'scripts/self_validation/rust_quality/terlan.toml') }}" >> "$GITHUB_OUTPUT"
@@ -54,8 +58,10 @@ runs:
           target/script-runner/terlc
           target/script-runner/terlan-vm
           target/script-runner/terlan-native-worker
+          target/script-runner/terlan-quality
         key: ${{ steps.identity.outputs.key }}
         restore-keys: |
+          ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v7-', runner.os, runner.arch) || '' }}
           ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v6-', runner.os, runner.arch) || '' }}
           ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v5-', runner.os, runner.arch) || '' }}
           ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v4-', runner.os, runner.arch) || '' }}
@@ -86,7 +92,9 @@ runs:
           && test -x target/script-runner/terlan-vm \
           && target/script-runner/terlc version >/dev/null 2>&1 \
           && { test '${{ inputs.native-worker }}' != 'true' \
-            || test -x target/script-runner/terlan-native-worker; }; then
+            || test -x target/script-runner/terlan-native-worker; } \
+          && { test '${{ inputs.validation-tools }}' != 'true' \
+            || test -x target/script-runner/terlan-quality; }; then
           usable=true
         fi
         echo "usable=$usable" >> "$GITHUB_OUTPUT"
@@ -105,9 +113,11 @@ runs:
       shell: bash
       run: |
         cargo build --locked -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker
+        cargo build --locked -p terlan --bin terlan-quality --features validation-union
         install -D -m 0755 target/debug/terlc target/script-runner/terlc
         install -D -m 0755 target/debug/terlan-vm target/script-runner/terlan-vm
         install -D -m 0755 target/debug/terlan-native-worker target/script-runner/terlan-native-worker
+        install -D -m 0755 target/debug/terlan-quality target/script-runner/terlan-quality
 
     - name: Restore compiled change classifier
       id: classifier
@@ -144,11 +154,17 @@ runs:
         if test -x target/script-runner/terlan-native-worker; then
           binaries+=(target/script-runner/terlan-native-worker)
         fi
+        if test -x target/script-runner/terlan-quality; then
+          binaries+=(target/script-runner/terlan-quality)
+        fi
         strip --strip-unneeded "${binaries[@]}"
         test "$(wc -c < target/script-runner/terlc)" -le 157286400
         test "$(wc -c < target/script-runner/terlan-vm)" -le 125829120
         if test '${{ inputs.native-worker }}' = 'true'; then
           test "$(wc -c < target/script-runner/terlan-native-worker)" -le 125829120
+        fi
+        if test '${{ inputs.validation-tools }}' = 'true'; then
+          test "$(wc -c < target/script-runner/terlan-quality)" -le 125829120
         fi
 
     - name: Save candidate script runner
@@ -160,6 +176,7 @@ runs:
           target/script-runner/terlc
           target/script-runner/terlan-vm
           target/script-runner/terlan-native-worker
+          target/script-runner/terlan-quality
         key: ${{ steps.identity.outputs.key }}
 
     - name: Save compiled change classifier
@@ -215,6 +232,9 @@ runs:
         test -x target/script-runner/terlan-vm
         if test '${{ inputs.native-worker }}' = 'true'; then
           test -x target/script-runner/terlan-native-worker
+        fi
+        if test '${{ inputs.validation-tools }}' = 'true'; then
+          test -x target/script-runner/terlan-quality
         fi
         test -s target/ci-classifier/vm/scripts_ClassifyChanges.tvm
         echo "terlc=$GITHUB_WORKSPACE/target/script-runner/terlc" >> "$GITHUB_OUTPUT"
