@@ -74,9 +74,11 @@ pub script_runner_cache_is_compact_and_versioned(): Bool ->
     } else {
         Err(_reason) -> false
     };
-    action.contains("terlan-script-runner-v5-")
+    action.contains("terlan-script-runner-v6-")
         and action.contains("allow-compatible-fallback:")
         and action.contains("default: \"false\"")
+        and action.contains("target/script-runner/terlan-native-worker")
+        and action.contains("native-worker=$GITHUB_WORKSPACE/target/script-runner/terlan-native-worker")
         and action.contains("!crates/**/*_test.rs")
         and action.contains("!crates/**/*_test/**/*.rs")
         and action.contains("terlan-ci-classifier-v1-")
@@ -93,7 +95,7 @@ pub script_runner_cache_is_compact_and_versioned(): Bool ->
         and action.contains("terlan-style-image=")
         and action.contains("rust-quality-image=")
         and action.contains("scripts_RustQuality.tvm")
-        and action.contains("strip --strip-unneeded target/script-runner/terlc target/script-runner/terlan-vm")
+        and action.contains("strip --strip-unneeded \"\${binaries[@]}\"")
         and action.contains("target/script-runner/terlc)\" -le 157286400")
         and action.contains("target/script-runner/terlan-vm)\" -le 125829120").
 
@@ -194,7 +196,7 @@ pub script_runner_never_relabels_an_old_compiler_as_current(): Bool ->
     } else {
         Err(_reason) -> false
     };
-    action.contains("terlan-script-runner-v5-")
+    action.contains("terlan-script-runner-v6-")
         and action.contains("key: \${{ steps.identity.outputs.key }}")
         and action.contains("if: \${{ steps.restored.outputs.usable != 'true' }}")
         and occurrences(workflow, "allow-compatible-fallback: \"true\"") == 1.

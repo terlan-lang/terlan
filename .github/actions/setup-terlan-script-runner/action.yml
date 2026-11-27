@@ -8,6 +8,9 @@ outputs:
   vm:
     description: Cached VM path
     value: ${{ steps.paths.outputs.vm }}
+  native-worker:
+    description: Cached native worker path
+    value: ${{ steps.paths.outputs.native-worker }}
   classifier-image:
     description: Current compiled change-classification image
     value: ${{ steps.paths.outputs.classifier-image }}
@@ -26,6 +29,10 @@ inputs:
     description: Permit bootstrap-only callers to use an older compatible runner
     required: false
     default: "false"
+  native-worker:
+    description: Require the native worker beside the cached compiler
+    required: false
+    default: "false"
 
 runs:
   using: composite
@@ -34,7 +41,7 @@ runs:
       id: identity
       shell: bash
       run: |
-        key="${RUNNER_OS}-${RUNNER_ARCH}-terlan-script-runner-v5-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'crates/**/*.rs', '!crates/**/*_test.rs', '!crates/**/*_tests.rs', '!crates/**/*_test/**/*.rs', '!crates/**/*_tests/**/*.rs', '!crates/**/test/**/*.rs', '!crates/**/tests/**/*.rs') }}"
+        key="${RUNNER_OS}-${RUNNER_ARCH}-terlan-script-runner-v6-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'crates/**/*.rs', '!crates/**/*_test.rs', '!crates/**/*_tests.rs', '!crates/**/*_test/**/*.rs', '!crates/**/*_tests/**/*.rs', '!crates/**/test/**/*.rs', '!crates/**/tests/**/*.rs') }}"
         echo "key=$key" >> "$GITHUB_OUTPUT"
         echo "classifier-sources=${{ hashFiles('std/**/*.terl', 'std/**/*.terli', 'scripts/ci/scripts/ClassifyChanges.terls', 'scripts/ci/src/ci/ChangeClassifier.terl') }}" >> "$GITHUB_OUTPUT"
         echo "program-sources=${{ hashFiles('std/**/*.terl', 'std/**/*.terli', 'scripts/ci/scripts/CheckRustFormatting.terls', 'scripts/ci/scripts/CheckTerlanStyle.terls', 'scripts/ci/src/ci/FormattingTools.terl', 'scripts/ci/src/ci/RustFormatting.terl', 'scripts/ci/src/ci/TerlanStyle.terl', 'scripts/self_validation/rust_quality/**/*.terl', 'scripts/self_validation/rust_quality/**/*.terls', 'scripts/self_validation/rust_quality/terlan.toml') }}" >> "$GITHUB_OUTPUT"
@@ -46,8 +53,10 @@ runs:
         path: |
           target/script-runner/terlc
           target/script-runner/terlan-vm
+          target/script-runner/terlan-native-worker
         key: ${{ steps.identity.outputs.key }}
         restore-keys: |
+          ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v6-', runner.os, runner.arch) || '' }}
           ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v5-', runner.os, runner.arch) || '' }}
           ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v4-', runner.os, runner.arch) || '' }}
           ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v3-', runner.os, runner.arch) || '' }}
@@ -75,7 +84,9 @@ runs:
         usable=false
         if test -x target/script-runner/terlc \
           && test -x target/script-runner/terlan-vm \
-          && target/script-runner/terlc version >/dev/null 2>&1; then
+          && target/script-runner/terlc version >/dev/null 2>&1 \
+          && { test '${{ inputs.native-worker }}' != 'true' \
+            || test -x target/script-runner/terlan-native-worker; }; then
           usable=true
         fi
         echo "usable=$usable" >> "$GITHUB_OUTPUT"
@@ -93,9 +104,10 @@ runs:
       if: ${{ steps.restored.outputs.usable != 'true' }}
       shell: bash
       run: |
-        cargo build --locked -p terlan --bin terlc --bin terlan-vm
+        cargo build --locked -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker
         install -D -m 0755 target/debug/terlc target/script-runner/terlc
         install -D -m 0755 target/debug/terlan-vm target/script-runner/terlan-vm
+        install -D -m 0755 target/debug/terlan-native-worker target/script-runner/terlan-native-worker
 
     - name: Restore compiled change classifier
       id: classifier
@@ -128,9 +140,16 @@ runs:
     - name: Compact candidate script runner
       shell: bash
       run: |
-        strip --strip-unneeded target/script-runner/terlc target/script-runner/terlan-vm
+        binaries=(target/script-runner/terlc target/script-runner/terlan-vm)
+        if test -x target/script-runner/terlan-native-worker; then
+          binaries+=(target/script-runner/terlan-native-worker)
+        fi
+        strip --strip-unneeded "${binaries[@]}"
         test "$(wc -c < target/script-runner/terlc)" -le 157286400
         test "$(wc -c < target/script-runner/terlan-vm)" -le 125829120
+        if test '${{ inputs.native-worker }}' = 'true'; then
+          test "$(wc -c < target/script-runner/terlan-native-worker)" -le 125829120
+        fi
 
     - name: Save candidate script runner
       # A compatible fallback is never saved under the exact candidate key.
@@ -140,6 +159,7 @@ runs:
         path: |
           target/script-runner/terlc
           target/script-runner/terlan-vm
+          target/script-runner/terlan-native-worker
         key: ${{ steps.identity.outputs.key }}
 
     - name: Save compiled change classifier
@@ -193,9 +213,13 @@ runs:
       run: |
         test -x target/script-runner/terlc
         test -x target/script-runner/terlan-vm
+        if test '${{ inputs.native-worker }}' = 'true'; then
+          test -x target/script-runner/terlan-native-worker
+        fi
         test -s target/ci-classifier/vm/scripts_ClassifyChanges.tvm
         echo "terlc=$GITHUB_WORKSPACE/target/script-runner/terlc" >> "$GITHUB_OUTPUT"
         echo "vm=$GITHUB_WORKSPACE/target/script-runner/terlan-vm" >> "$GITHUB_OUTPUT"
+        echo "native-worker=$GITHUB_WORKSPACE/target/script-runner/terlan-native-worker" >> "$GITHUB_OUTPUT"
         echo "classifier-image=$GITHUB_WORKSPACE/target/ci-classifier/vm/scripts_ClassifyChanges.tvm" >> "$GITHUB_OUTPUT"
         echo "rust-format-image=$GITHUB_WORKSPACE/target/ci-programs/rust-format/vm/scripts_CheckRustFormatting.tvm" >> "$GITHUB_OUTPUT"
         echo "terlan-style-image=$GITHUB_WORKSPACE/target/ci-programs/terlan-style/vm/scripts_CheckTerlanStyle.tvm" >> "$GITHUB_OUTPUT"

@@ -451,6 +451,8 @@ jobs:
         id: script-runner
         if: ${{ needs.changes.outputs.compiler == 'true' }}
         uses: ./.github/actions/setup-terlan-script-runner
+        with:
+          native-worker: "true"
 
       - name: Install native build dependencies
         if: ${{ needs.changes.outputs.compiler == 'true' }}
