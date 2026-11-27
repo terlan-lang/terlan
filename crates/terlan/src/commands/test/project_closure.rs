@@ -60,6 +60,9 @@ pub(super) fn prepare_project_source_interface_closure(
     let mut load_imports = |module: &SourceModule| {
         let path = module.path.to_string_lossy();
         let source = crate::support::read_file(&path)?;
+        if let Some(imports) = cached_module_imports(module, &source, state) {
+            return Ok(imports);
+        }
         let syntax = crate::formal_pipeline::parse_source_as_syntax_output(&path, &source)
             .map_err(|error| {
                 format!(
@@ -89,6 +92,50 @@ pub(super) fn prepare_project_source_interface_closure(
         );
     }
     Ok(())
+}
+
+/// Reuses a current checked dependency manifest for syntax-closure discovery.
+///
+/// Inputs:
+/// - `module`: indexed source identity and path.
+/// - `source`: current source bytes.
+/// - `state`: project cache selected for this compilation.
+///
+/// Output:
+/// - Cached module dependencies when source and syntax-contract identities are
+///   current, otherwise `None` so the caller parses the source safely.
+///
+/// Transformation:
+/// - Removes non-module assets from the checked dependency manifest and avoids
+///   reparsing a module that Core compilation will load immediately afterward.
+fn cached_module_imports(
+    module: &SourceModule,
+    source: &str,
+    state: &CliState,
+) -> Option<Vec<String>> {
+    let cache = state.cache_dir.as_deref()?;
+    let manifest = crate::commands::artifacts::read_manifest(
+        &cache.join(format!("{}.typi.deps", module.identity)),
+    )?;
+    if manifest.module != module.identity
+        || manifest.source_hash != crate::commands::artifacts::fingerprint(source.as_bytes())
+        || !crate::terlan_syntax::syntax_contract_identity_matches_current(
+            &manifest.syntax_contract_identity,
+        )
+        .ok()?
+    {
+        return None;
+    }
+    Some(
+        manifest
+            .dependencies
+            .into_iter()
+            .map(|(dependency, _)| dependency)
+            .filter(|dependency| {
+                !dependency.starts_with("file:") && !dependency.starts_with("template:")
+            })
+            .collect(),
+    )
 }
 
 fn syntax_module_imports(syntax: &crate::terlan_syntax::SyntaxModuleOutput) -> Vec<String> {
@@ -404,6 +451,89 @@ mod tests {
             incremental: true,
             ..CliState::default()
         }
+    }
+
+    fn source_module(root: &Path, identity: &str) -> SourceModule {
+        SourceModule {
+            identity: identity.to_string(),
+            root: root.to_path_buf(),
+            path: root.join(format!("{}.terl", identity.replace('.', "/"))),
+        }
+    }
+
+    fn write_manifest(cache: &Path, module: &str, source: &str, dependencies: &[&str]) {
+        fs::create_dir_all(cache).expect("manifest cache");
+        let manifest = crate::commands::artifacts::DependencyManifest {
+            module: module.to_string(),
+            syntax_contract_identity:
+                crate::terlan_syntax::cached_canonical_terlan_syntax_contract_identity()
+                    .expect("syntax identity"),
+            source_hash: crate::commands::artifacts::fingerprint(source.as_bytes()),
+            interface_hash: 1,
+            interface_doc_hash: 2,
+            dependencies: dependencies
+                .iter()
+                .map(|dependency| (dependency.to_string(), 3))
+                .collect(),
+        };
+        fs::write(cache.join(format!("{module}.typi.deps")), manifest.encode())
+            .expect("dependency manifest");
+    }
+
+    #[test]
+    fn current_dependency_manifest_avoids_closure_reparse() {
+        let fixture = tempfile::tempdir().expect("manifest closure fixture");
+        let cache = fixture.path().join("cache");
+        let source = "module app.Root.\nimport app.Dependency.\n";
+        write_manifest(
+            &cache,
+            "app.Root",
+            source,
+            &["app.Dependency", "file:asset", "template:view"],
+        );
+
+        assert_eq!(
+            cached_module_imports(
+                &source_module(fixture.path(), "app.Root"),
+                source,
+                &state(&cache),
+            ),
+            Some(vec!["app.Dependency".to_string()])
+        );
+    }
+
+    #[test]
+    fn stale_dependency_manifest_falls_back_to_source_parse() {
+        let fixture = tempfile::tempdir().expect("stale manifest fixture");
+        let cache = fixture.path().join("cache");
+        write_manifest(
+            &cache,
+            "app.Root",
+            "module app.Root.\n",
+            &["app.Dependency"],
+        );
+
+        assert_eq!(
+            cached_module_imports(
+                &source_module(fixture.path(), "app.Root"),
+                "module app.Root.\npub changed(): Int -> 1.\n",
+                &state(&cache),
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn absent_dependency_cache_falls_back_to_source_parse() {
+        let fixture = tempfile::tempdir().expect("absent manifest fixture");
+        assert_eq!(
+            cached_module_imports(
+                &source_module(fixture.path(), "app.Root"),
+                "module app.Root.\n",
+                &CliState::default(),
+            ),
+            None
+        );
     }
 
     #[test]
