@@ -3,6 +3,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 use std::process::ExitCode;
+use std::time::Instant;
 
 use crate::commands::artifacts::{
     collect_syntax_dependency_hashes, fingerprint, DependencyManifest,
@@ -125,8 +126,8 @@ pub(super) fn run_with_roots(
         inputs.push((file, source, syntax));
     }
     let dependencies = match resolved_roots.map_or_else(
-        || super::dependencies::source_interfaces(root),
-        super::dependencies::interfaces_from_roots,
+        || super::dependencies::source_interfaces(root, state.timings),
+        |roots| super::dependencies::interfaces_from_roots(roots, state.timings),
     ) {
         Ok(dependencies) => dependencies,
         Err(message) => {
@@ -312,8 +313,12 @@ pub(super) fn run_selected(
         }
     };
 
+    let interface_started = Instant::now();
     let mut inputs = Vec::new();
     let mut source_roots = Vec::new();
+    let mut discovered = 0_usize;
+    let mut reused = 0_usize;
+    let mut parsed = 0_usize;
     for relative_root in &manifest.source_roots {
         let root = project_root.join(relative_root);
         let root = match root.canonicalize() {
@@ -333,6 +338,7 @@ pub(super) fn run_selected(
                 return ExitCode::from(1);
             }
         };
+        discovered += files.len();
         let source_root_cache = root.join(".terlan");
         for file in files {
             let source = match crate::support::read_file(&file.to_string_lossy()) {
@@ -361,6 +367,16 @@ pub(super) fn run_selected(
                     return ExitCode::from(1);
                 }
             };
+            if !selected.contains(&file)
+                && file
+                    .extension()
+                    .is_some_and(|extension| extension == "terl")
+                && syntax.source_kind == SyntaxSourceKind::Interface
+            {
+                reused += 1;
+            } else {
+                parsed += 1;
+            }
             if let Err(message) = validate_module_layout(&root, &file, &syntax.module_name) {
                 crate::support::emit_diagnostic(
                     "module_layout_error",
@@ -382,6 +398,8 @@ pub(super) fn run_selected(
         .map(|(path, _, _)| path.clone())
         .collect::<HashSet<_>>();
     for selected_path in selected.iter().filter(|path| !known_paths.contains(*path)) {
+        discovered += 1;
+        parsed += 1;
         let source = match crate::support::read_file(&selected_path.to_string_lossy()) {
             Ok(source) => source,
             Err(message) => {
@@ -403,8 +421,16 @@ pub(super) fn run_selected(
         inputs.push((selected_path.clone(), source, syntax));
     }
 
+    if state.timings {
+        eprintln!(
+            "terlc timing: check.project-interfaces: discovered={discovered} loaded={} reused={reused} parsed={parsed} elapsed={}ms",
+            inputs.len(),
+            interface_started.elapsed().as_millis()
+        );
+    }
+
     let dependencies = match source_roots.first() {
-        Some(root) => match super::dependencies::source_interfaces(root) {
+        Some(root) => match super::dependencies::source_interfaces(root, state.timings) {
             Ok(dependencies) => dependencies,
             Err(message) => {
                 eprintln!("{message}");

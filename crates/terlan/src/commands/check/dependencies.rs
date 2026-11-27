@@ -2,11 +2,20 @@
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use crate::commands::build::{project_check_source_roots, project_manifest};
 use crate::commands::source_layout::validate_module_layout;
 use crate::formal_pipeline::{parse_source_as_syntax_output, terlan_check_sources_in_dir};
 use crate::terlan_syntax::SyntaxModuleOutput;
+
+#[derive(Debug, Default, PartialEq, Eq)]
+struct InterfaceLoadStats {
+    discovered: usize,
+    reused: usize,
+    parsed: usize,
+    shadowed: usize,
+}
 
 /// Loads a current summary from the first matching cache, otherwise parses the
 /// authoritative source implementation.
@@ -36,6 +45,7 @@ pub(super) fn current_interface_or_source<'a>(
 /// Handwritten interfaces take precedence over their implementations.
 pub(super) fn source_interfaces(
     checked_root: &Path,
+    timings: bool,
 ) -> Result<Vec<(PathBuf, SyntaxModuleOutput)>, String> {
     let checked_root = checked_root.canonicalize().map_err(|error| {
         format!(
@@ -65,6 +75,7 @@ pub(super) fn source_interfaces(
             .into_iter()
             .filter(|root| !own_roots.contains(root))
             .collect::<Vec<_>>(),
+        timings,
     )
 }
 
@@ -73,16 +84,40 @@ pub(super) fn source_interfaces(
 /// malformed, or stale summaries fall back to their authoritative source.
 pub(super) fn interfaces_from_roots(
     roots: &[PathBuf],
+    timings: bool,
 ) -> Result<Vec<(PathBuf, SyntaxModuleOutput)>, String> {
+    let started = Instant::now();
+    let (sources, stats) = collect_interfaces_from_roots(roots)?;
+    if timings {
+        eprintln!(
+            "terlc timing: check.dependency-interfaces: discovered={} loaded={} reused={} parsed={} shadowed={} elapsed={}ms",
+            stats.discovered,
+            sources.len(),
+            stats.reused,
+            stats.parsed,
+            stats.shadowed,
+            started.elapsed().as_millis()
+        );
+    }
+    Ok(sources)
+}
+
+fn collect_interfaces_from_roots(
+    roots: &[PathBuf],
+) -> Result<(Vec<(PathBuf, SyntaxModuleOutput)>, InterfaceLoadStats), String> {
     let mut sources = Vec::new();
+    let mut stats = InterfaceLoadStats::default();
     for root in roots {
         let cache_dir = root.join(".terlan");
-        for path in terlan_check_sources_in_dir(root).map_err(|error| error.to_string())? {
+        let paths = terlan_check_sources_in_dir(root).map_err(|error| error.to_string())?;
+        stats.discovered += paths.len();
+        for path in paths {
             if path
                 .extension()
                 .is_some_and(|extension| extension == "terl")
                 && path.with_extension("terli").is_file()
             {
+                stats.shadowed += 1;
                 continue;
             }
             let text = crate::support::read_file(&path.to_string_lossy())?;
@@ -92,11 +127,20 @@ pub(super) fn interfaces_from_roots(
                 &text,
                 std::iter::once(cache_dir.as_path()),
             )?;
+            if path
+                .extension()
+                .is_some_and(|extension| extension == "terl")
+                && syntax.source_kind == crate::terlan_syntax::SyntaxSourceKind::Interface
+            {
+                stats.reused += 1;
+            } else {
+                stats.parsed += 1;
+            }
             validate_module_layout(root, &path, &syntax.module_name)?;
             sources.push((path, syntax));
         }
     }
-    Ok(sources)
+    Ok((sources, stats))
 }
 
 #[cfg(test)]
@@ -112,7 +156,7 @@ mod tests {
     };
     use crate::CliState;
 
-    use super::interfaces_from_roots;
+    use super::{collect_interfaces_from_roots, interfaces_from_roots, InterfaceLoadStats};
 
     #[test]
     fn dependency_roots_reuse_only_current_generated_interfaces() {
@@ -147,18 +191,59 @@ mod tests {
         )
         .expect("write dependency manifest");
 
-        let cached = interfaces_from_roots(std::slice::from_ref(&root))
+        let cached = interfaces_from_roots(std::slice::from_ref(&root), true)
             .expect("load current dependency interface");
         assert_eq!(cached.len(), 1);
         assert_eq!(cached[0].1.source_kind, SyntaxSourceKind::Interface);
+        let (_, cached_stats) = collect_interfaces_from_roots(std::slice::from_ref(&root))
+            .expect("measure current dependency interface");
+        assert_eq!(
+            cached_stats,
+            InterfaceLoadStats {
+                discovered: 1,
+                reused: 1,
+                parsed: 0,
+                shadowed: 0,
+            }
+        );
 
         fs::write(
             &source_path,
             "module app.Dependency. pub value(): Int -> 2.",
         )
         .expect("change dependency source");
-        let stale = interfaces_from_roots(&[root]).expect("fall back to dependency source");
+        let stale = interfaces_from_roots(std::slice::from_ref(&root), false)
+            .expect("fall back to dependency source");
         assert_eq!(stale.len(), 1);
         assert_eq!(stale[0].1.source_kind, SyntaxSourceKind::Module);
+        let (_, stale_stats) = collect_interfaces_from_roots(std::slice::from_ref(&root))
+            .expect("measure stale dependency interface");
+        assert_eq!(
+            stale_stats,
+            InterfaceLoadStats {
+                discovered: 1,
+                reused: 0,
+                parsed: 1,
+                shadowed: 0,
+            }
+        );
+
+        fs::write(
+            source_path.with_extension("terli"),
+            "module app.Dependency. pub value(): Int.",
+        )
+        .expect("write authoritative dependency interface");
+        let (declared, declared_stats) = collect_interfaces_from_roots(std::slice::from_ref(&root))
+            .expect("prefer authoritative dependency interface");
+        assert_eq!(declared.len(), 1);
+        assert_eq!(
+            declared_stats,
+            InterfaceLoadStats {
+                discovered: 2,
+                reused: 0,
+                parsed: 1,
+                shadowed: 1,
+            }
+        );
     }
 }

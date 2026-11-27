@@ -382,8 +382,8 @@ pub(crate) fn run_check_dir(
     let mut interfaces: HashMap<String, ModuleInterface> = HashMap::new();
     load_interfaces_from_dir(&cache_dir, &mut interfaces);
     let dependencies = match resolved_roots.map_or_else(
-        || super::dependencies::source_interfaces(dir),
-        super::dependencies::interfaces_from_roots,
+        || super::dependencies::source_interfaces(dir, state.timings),
+        |roots| super::dependencies::interfaces_from_roots(roots, state.timings),
     ) {
         Ok(dependencies) => dependencies,
         Err(message) => {
