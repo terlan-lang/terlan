@@ -219,11 +219,16 @@ pub(super) fn compile_project_source_core_closure(
                     eprintln!("{message}");
                     ExitCode::from(1)
                 })?;
-            if let Some(previous) = sources.insert(module.clone(), file.clone()) {
-                if previous.canonicalize().ok() != file.canonicalize().ok() {
+            let source = SourceModule {
+                identity: module.clone(),
+                root: root.clone(),
+                path: file.clone(),
+            };
+            if let Some(previous) = sources.insert(module.clone(), source) {
+                if previous.path.canonicalize().ok() != file.canonicalize().ok() {
                     eprintln!(
                         "duplicate project source module `{module}` at {} and {}",
-                        previous.display(),
+                        previous.path.display(),
                         file.display()
                     );
                     return Err(ExitCode::from(1));
@@ -251,18 +256,20 @@ pub(super) fn compile_project_source_core_closure(
             if !seen.insert(module.clone()) {
                 continue;
             }
-            let Some(file) = sources.get(&module) else {
+            let Some(source) = sources.get(&module) else {
                 continue;
             };
-            if file
+            if source
+                .path
                 .canonicalize()
                 .ok()
                 .is_some_and(|path| active_paths.contains(&path))
             {
                 continue;
             }
-            frontier.push(file.clone());
+            frontier.push(source.clone());
         }
+        prepare_frontier_interfaces(&frontier, state)?;
         let started = Instant::now();
         if state.timings {
             eprintln!(
@@ -271,8 +278,8 @@ pub(super) fn compile_project_source_core_closure(
                 bounded_worker_limit()
             );
         }
-        let result = run_indexed_bounded(&frontier, bounded_worker_limit(), |file| {
-            compile_project_source_core_module(file, state)
+        let result = run_indexed_bounded(&frontier, bounded_worker_limit(), |source| {
+            compile_project_source_core_module(&source.path, state)
         });
         if state.timings {
             eprintln!(
@@ -308,6 +315,40 @@ pub(super) fn compile_project_source_core_closure(
     }
     modules.sort_by(|left, right| left.core.module.cmp(&right.core.module));
     Ok(modules)
+}
+
+/// Refreshes every provider interface before one parallel Core frontier starts.
+///
+/// Inputs:
+/// - `frontier`: newly resolved source providers grouped by source root.
+/// - `state`: the focused-test cache and incremental compiler policy.
+///
+/// Output:
+/// - Success after every current interface is published, or the first
+///   deterministic preparation failure.
+///
+/// Transformation:
+/// - Prepares source-root groups serially before worker admission so a consumer
+///   can never race a provider replacing an obsolete cached interface.
+fn prepare_frontier_interfaces(
+    frontier: &[SourceModule],
+    state: &CliState,
+) -> Result<(), ExitCode> {
+    let mut by_root = BTreeMap::<PathBuf, Vec<PathBuf>>::new();
+    for source in frontier {
+        by_root
+            .entry(source.root.clone())
+            .or_default()
+            .push(source.path.clone());
+    }
+    for (root, files) in by_root {
+        if let Err(message) = crate::commands::build::prepare_source_interfaces(&root, state, files)
+        {
+            eprintln!("focused test frontier interface preparation failed: {message}");
+            return Err(ExitCode::from(1));
+        }
+    }
+    Ok(())
 }
 
 fn compile_project_source_core_module(
@@ -469,5 +510,68 @@ mod tests {
         .expect("prepare grouped sibling closure");
 
         assert!(cache.join("app.Child.typi").is_file());
+    }
+
+    #[test]
+    fn frontier_interfaces_refresh_all_roots_before_compilation() {
+        let fixture = tempfile::tempdir().expect("frontier fixture");
+        let cache = fixture.path().join("cache");
+        let left = fixture.path().join("left");
+        let right = fixture.path().join("right");
+        fs::create_dir_all(left.join("app")).expect("left source layout");
+        fs::create_dir_all(right.join("lib")).expect("right source layout");
+        let left_file = left.join("app/Provider.terl");
+        let right_file = right.join("lib/Provider.terl");
+        fs::write(
+            &left_file,
+            "module app.Provider.\npub current_left(): Int -> 1.\n",
+        )
+        .expect("left provider");
+        fs::write(
+            &right_file,
+            "module lib.Provider.\npub current_right(): Int -> 2.\n",
+        )
+        .expect("right provider");
+        let frontier = vec![
+            SourceModule {
+                identity: "app.Provider".to_string(),
+                root: left,
+                path: left_file,
+            },
+            SourceModule {
+                identity: "lib.Provider".to_string(),
+                root: right,
+                path: right_file,
+            },
+        ];
+
+        prepare_frontier_interfaces(&frontier, &state(&cache)).expect("prepare frontier");
+
+        let left_interface =
+            fs::read_to_string(cache.join("app.Provider.typi")).expect("left prepared interface");
+        let right_interface =
+            fs::read_to_string(cache.join("lib.Provider.typi")).expect("right prepared interface");
+        assert!(left_interface.contains("current_left"));
+        assert!(right_interface.contains("current_right"));
+    }
+
+    #[test]
+    fn frontier_interface_failure_stops_worker_admission() {
+        let fixture = tempfile::tempdir().expect("invalid frontier fixture");
+        let cache = fixture.path().join("cache");
+        let root = fixture.path().join("src");
+        fs::create_dir_all(root.join("app")).expect("source layout");
+        let file = root.join("app/Broken.terl");
+        fs::write(&file, "module app.Broken.\npub broken(: Int -> 0.\n").expect("invalid source");
+        let frontier = vec![SourceModule {
+            identity: "app.Broken".to_string(),
+            root,
+            path: file,
+        }];
+
+        assert_eq!(
+            prepare_frontier_interfaces(&frontier, &state(&cache)),
+            Err(ExitCode::from(1))
+        );
     }
 }
