@@ -25,6 +25,10 @@ use crate::terlan_typeck::{
 pub(crate) fn parse_symbol_scheme(symbol: &FunctionSymbol) -> Option<FunctionScheme> {
     let mut vars = HashMap::new();
     let mut next_var: TypeVarId = 0;
+    for param in &symbol.generic_params {
+        vars.insert(normalize_type_param_name(param), next_var);
+        next_var += 1;
+    }
     let params = symbol
         .params
         .iter()
@@ -45,6 +49,11 @@ pub(crate) fn parse_symbol_scheme(symbol: &FunctionSymbol) -> Option<FunctionSch
         params,
         ret,
         generic_params: symbol.generic_params.clone(),
+        generic_vars: symbol
+            .generic_params
+            .iter()
+            .filter_map(|param| vars.get(&normalize_type_param_name(param)).copied())
+            .collect(),
         bounds,
     })
 }
@@ -182,6 +191,11 @@ fn parse_interface_signature_in_context(
         params,
         ret,
         generic_params: signature.generic_params.clone(),
+        generic_vars: signature
+            .generic_params
+            .iter()
+            .filter_map(|param| vars.get(&normalize_type_param_name(param)).copied())
+            .collect(),
         bounds,
     })
 }

@@ -23,6 +23,7 @@ pub(super) fn run_path_batch(args: &TestArgs, state: CliState, paths: &[String])
         return ExitCode::from(1);
     }
     let mut files = Vec::new();
+    let mut support_files = Vec::new();
     for path in paths {
         let path = Path::new(path);
         if path.is_dir() {
@@ -32,6 +33,12 @@ pub(super) fn run_path_batch(args: &TestArgs, state: CliState, paths: &[String])
             }
         } else if is_test_source_path(&path.to_string_lossy()) {
             files.push(path.to_path_buf());
+        } else if path.is_file()
+            && path
+                .extension()
+                .is_some_and(|extension| extension == "terl")
+        {
+            support_files.push(path.to_path_buf());
         } else {
             eprintln!(
                 "terlc test requires a {TEST_SOURCE_PATTERN_DESCRIPTION} source file: {}",
@@ -42,6 +49,8 @@ pub(super) fn run_path_batch(args: &TestArgs, state: CliState, paths: &[String])
     }
     files.sort();
     files.dedup();
+    support_files.sort();
+    support_files.dedup();
     if files.is_empty() {
         eprintln!("no {TEST_SOURCE_PATTERN_DESCRIPTION} files found");
         return ExitCode::from(1);
@@ -66,11 +75,17 @@ pub(super) fn run_path_batch(args: &TestArgs, state: CliState, paths: &[String])
 
     let exhaustive_project = paths.iter().any(|path| Path::new(path).is_dir());
     let mut outcome = match args.target {
-        TestTarget::TerlanVm => {
-            super::suite::run_terlan_vm_test_files(args, state.clone(), files, exhaustive_project)
-        }
+        TestTarget::TerlanVm => super::suite::run_terlan_vm_test_files(
+            args,
+            state.clone(),
+            files,
+            exhaustive_project,
+            &support_files,
+        ),
         TestTarget::Js => match effective_js_test_profile(state.target_profile) {
-            Ok(profile) => super::suite::run_js_test_files(args, state.clone(), profile, files),
+            Ok(profile) => {
+                super::suite::run_js_test_files(args, state.clone(), profile, files, &support_files)
+            }
             Err(message) => {
                 eprintln!("{message}");
                 ExitCode::from(1)
@@ -78,9 +93,9 @@ pub(super) fn run_path_batch(args: &TestArgs, state: CliState, paths: &[String])
         },
         TestTarget::Wasm => {
             let mut failed = false;
-            for path in paths {
+            for path in &files {
                 let mut path_args = args.clone();
-                path_args.path.clone_from(path);
+                path_args.path = path.to_string_lossy().into_owned();
                 path_args.additional_paths.clear();
                 if run_path(&path_args, state.clone()) != ExitCode::SUCCESS {
                     failed = true;

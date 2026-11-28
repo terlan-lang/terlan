@@ -197,6 +197,10 @@ pub(super) fn function_decl_to_scheme(
         params,
         ret,
         generic_params: generic_params.to_vec(),
+        generic_vars: generic_params
+            .iter()
+            .filter_map(|param| vars.get(&normalize_type_param_name(param)).copied())
+            .collect(),
         bounds,
     }
 }

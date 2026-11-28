@@ -847,11 +847,8 @@ fn focused_project_test_loads_transitive_test_support() {
         "[package]\nname = \"app\"\nversion = \"0.0.0\"\n\n[build]\nsource_roots = [\"src\"]\n",
     )
     .expect("project manifest");
-    fs::write(
-        root.join("tests/app/Fixture.terl"),
-        "module app.Fixture.\npub answer(): Int -> 42.\n",
-    )
-    .expect("support source");
+    let support = root.join("tests/app/Fixture.terl");
+    fs::write(&support, "module app.Fixture.\npub answer(): Int -> 42.\n").expect("support source");
     let test = root.join("tests/app/SupportConsumerTest.terl");
     fs::write(
         &test,
@@ -864,7 +861,21 @@ fn focused_project_test_loads_transitive_test_support() {
     )
     .expect("consumer test");
 
-    let result = run(
+    let explicit_result = run(
+        CliCommand {
+            verb: Some("test".to_string()),
+            args: vec![
+                test.to_string_lossy().into_owned(),
+                support.to_string_lossy().into_owned(),
+            ],
+        },
+        CliState {
+            out_dir: root.join("out"),
+            cache_dir: Some(root.join(".terlan")),
+            ..CliState::default()
+        },
+    );
+    let transitive_result = run(
         CliCommand {
             verb: Some("test".to_string()),
             args: vec![test.to_string_lossy().into_owned()],
@@ -877,7 +888,8 @@ fn focused_project_test_loads_transitive_test_support() {
     );
     fs::remove_dir_all(root).expect("remove test support fixture");
 
-    assert_eq!(result, ExitCode::SUCCESS);
+    assert_eq!(explicit_result, ExitCode::SUCCESS);
+    assert_eq!(transitive_result, ExitCode::SUCCESS);
 }
 
 /// Verifies focused native imports with nested generic results stay bounded.

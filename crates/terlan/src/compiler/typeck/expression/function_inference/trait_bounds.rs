@@ -447,6 +447,7 @@ pub(crate) fn infer_trait_method_call_from_current_bounds(
                 ctx,
             ),
             generic_params: Vec::new(),
+            generic_vars: Vec::new(),
             bounds: bounds
                 .into_iter()
                 .map(|bound| FunctionBound {
@@ -506,27 +507,7 @@ pub(crate) fn trait_has_bound_implementation(
         }
     }
 
-    let mut candidates = ctx
-        .trait_bound_impl_type_args
-        .get(trait_name)
-        .cloned()
-        .unwrap_or_default();
-    if let Some(local_name) = trait_name.rsplit('.').next().filter(|local_name| {
-        *local_name != trait_name && ctx.trait_signatures.contains_key(*local_name)
-    }) {
-        if let Some(local_candidates) = ctx.trait_bound_impl_type_args.get(local_name) {
-            for candidate in local_candidates {
-                if !candidates.contains(candidate) {
-                    candidates.push(candidate.clone());
-                }
-            }
-        }
-    }
-    for imported in imported_interface_trait_bound_impls(trait_name, ctx) {
-        if !candidates.contains(&imported) {
-            candidates.push(imported);
-        }
-    }
+    let candidates = trait_bound_implementation_candidates(trait_name, ctx);
 
     let mut found = false;
     for impl_args in &candidates {
@@ -556,6 +537,39 @@ pub(crate) fn trait_has_bound_implementation(
             .insert(cache_key, found);
     }
     found
+}
+
+/// Collects every visible implementation head for one trait bound.
+///
+/// Imported conformances participate in inference as well as final bound
+/// validation. Otherwise output-only generic parameters cannot be recovered
+/// from an implementation loaded through a package interface.
+fn trait_bound_implementation_candidates(
+    trait_name: &str,
+    ctx: &ExprInferContext<'_>,
+) -> Vec<Vec<Type>> {
+    let mut candidates = ctx
+        .trait_bound_impl_type_args
+        .get(trait_name)
+        .cloned()
+        .unwrap_or_default();
+    if let Some(local_name) = trait_name.rsplit('.').next().filter(|local_name| {
+        *local_name != trait_name && ctx.trait_signatures.contains_key(*local_name)
+    }) {
+        if let Some(local_candidates) = ctx.trait_bound_impl_type_args.get(local_name) {
+            for candidate in local_candidates {
+                if !candidates.contains(candidate) {
+                    candidates.push(candidate.clone());
+                }
+            }
+        }
+    }
+    for imported in imported_interface_trait_bound_impls(trait_name, ctx) {
+        if !candidates.contains(&imported) {
+            candidates.push(imported);
+        }
+    }
+    candidates
 }
 
 /// Loads provider conformance facts required only by imported function bounds.

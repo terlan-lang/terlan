@@ -104,6 +104,11 @@ application-level workarounds do not satisfy them.
 - [x] Include type-only imports and transitively imported non-test support
   modules in focused test compilation without adding test roots to package
   coverage ownership.
+- [x] Preserve declared generic parameter order across source and package
+  interfaces, including explicit type arguments whose result parameters do not
+  occur in value arguments.
+- [x] Refine output-only generic parameters from imported trait implementations
+  during source inference and native specialization.
 - [ ] Admit domain-neutral regressions for every item above before marking the
   corresponding compiler fix complete.
 
@@ -117,14 +122,23 @@ Type import resolution now binds the local type name to its defining module,
 including selected aliases, so both receiver calls and `Type.operation(...)`
 calls share one import contract. Focused test context derives the active test
 source root from its declared module identity and traverses type-only and
-ordinary imports from that root. Domain-neutral positive, negative, provider-
-retention, closure, and executable support-module regressions cover the
-contract.
+ordinary imports from that root. Explicit non-test support paths are admitted
+as compilation roots in the same project without becoming runnable tests or
+coverage owners. Domain-neutral positive, negative, provider-retention,
+closure, and executable support-module regressions cover the contract.
 
-The compiler hook now applies the existing `validation-union` feature alias to
-its staged binaries, Clippy, and every focused `terlan` Rust-test lane. Hook
-contract tests reject regression to separate default or `quality-tools` build
-graphs.
+Function schemes now retain generic variable identities in declaration order
+instead of reconstructing order from first value use. Imported conformance
+heads participate in output refinement, and NativeIR treats unresolved caller
+parameters as unknown while matching a known generic provider. The exported
+order fixture, four imported generic-trait execution fixtures, and focused Rust
+regressions pass with inferred and explicit calls.
+
+The compiler hook now activates one exact `validation-union` candidate before
+source contracts and reuses it for every focused `terlan` Rust-test lane.
+Clippy remains a release/CI contract instead of compiling the compiler graph a
+second time during pre-commit. Hook contract tests enforce candidate-first
+ordering and reject duplicate pre-commit Clippy builds.
 
 ## Release exit
 

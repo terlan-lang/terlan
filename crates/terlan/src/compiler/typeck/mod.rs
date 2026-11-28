@@ -117,6 +117,8 @@ struct FunctionScheme {
     params: Vec<Type>,
     ret: Type,
     generic_params: Vec<String>,
+    /// Type-variable identities in source declaration order.
+    generic_vars: Vec<TypeVarId>,
     bounds: Vec<FunctionBound>,
 }
 

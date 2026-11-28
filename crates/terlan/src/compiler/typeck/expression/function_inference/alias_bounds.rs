@@ -33,6 +33,7 @@ fn check_type_alias_implication_bounds_inner(
                 params: alias.params.iter().copied().map(Type::Var).collect(),
                 ret: Type::Never,
                 generic_params: Vec::new(),
+                generic_vars: Vec::new(),
                 bounds: alias.bounds.clone(),
             };
             let mut subst = HashMap::new();

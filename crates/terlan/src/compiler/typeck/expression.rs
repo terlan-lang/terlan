@@ -138,6 +138,10 @@ impl ExprInferContext<'_> {
                         .flat_map(|bound| bound.trait_args.iter()),
                 ),
         );
+        if let Some(maximum) = instantiated.generic_vars.iter().max() {
+            self.next_inference_var
+                .set(self.next_inference_var.get().max(*maximum + 1));
+        }
         instantiated
     }
 }

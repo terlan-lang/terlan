@@ -560,6 +560,7 @@ pub(super) fn infer_receiver_method_candidate(
         params,
         ret: method_return,
         generic_params: candidate.scheme.generic_params.clone(),
+        generic_vars: candidate.scheme.generic_vars.clone(),
         bounds: candidate.scheme.bounds.clone(),
     };
     let mut combined_args = Vec::with_capacity(arg_types.len() + 1);

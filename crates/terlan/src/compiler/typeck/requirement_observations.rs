@@ -87,6 +87,7 @@ pub(super) fn record_alias(
         params: Vec::new(),
         ret: alias.body.clone(),
         generic_params: generic_params.to_vec(),
+        generic_vars: alias.params.clone(),
         bounds: alias.bounds.clone(),
     };
     record_kind("type", module, name, 0, span, &scheme);

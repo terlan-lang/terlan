@@ -5,6 +5,7 @@ fn scheme() -> FunctionScheme {
         params: vec![Type::Int],
         ret: Type::Int,
         generic_params: Vec::new(),
+        generic_vars: Vec::new(),
         bounds: Vec::new(),
     }
 }

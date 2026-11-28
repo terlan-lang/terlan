@@ -26,6 +26,12 @@ pub(super) fn enclosing_type_var_floor(
         })
         .chain(fields.values().flat_map(|fields| fields.values()))
         .filter_map(max_type_var)
+        .chain(
+            signatures
+                .values()
+                .flatten()
+                .flat_map(|scheme| scheme.generic_vars.iter().copied()),
+        )
         .max()
         .map_or(0, |id| id + 1)
 }
@@ -75,6 +81,12 @@ pub(super) fn instantiate_function_scheme_from(
         }
     };
 
+    let generic_vars = scheme
+        .generic_vars
+        .iter()
+        .map(&mut remap)
+        .collect::<Vec<_>>();
+
     let params = scheme
         .params
         .iter()
@@ -98,6 +110,7 @@ pub(super) fn instantiate_function_scheme_from(
         params,
         ret,
         generic_params: scheme.generic_params.clone(),
+        generic_vars,
         bounds,
     }
 }

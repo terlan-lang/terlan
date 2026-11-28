@@ -23,6 +23,7 @@ pub(crate) fn builtin_call(name: &str, arity: usize) -> Option<FunctionScheme> {
                 args: Vec::new(),
             },
             generic_params: Vec::new(),
+            generic_vars: Vec::new(),
             bounds: Vec::new(),
         }),
         ("is_type", 2) => Some(FunctionScheme {
@@ -36,6 +37,7 @@ pub(crate) fn builtin_call(name: &str, arity: usize) -> Option<FunctionScheme> {
             ],
             ret: Type::Bool,
             generic_params: Vec::new(),
+            generic_vars: Vec::new(),
             bounds: Vec::new(),
         }),
         _ => None,

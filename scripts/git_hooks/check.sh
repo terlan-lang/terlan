@@ -851,7 +851,7 @@ run_affected_rust_lane() {
       run_workspace_suite
       ;;
     dependencies)
-      echo 'pre-commit: Terlan library and binaries reuse candidate Clippy'
+      echo 'pre-commit: Terlan library and binaries reuse candidate tests'
       cargo check --locked --workspace --tests --exclude terlan
       ;;
     native-planning) run_focused_rust_crate terlan-native-planning ;;
@@ -859,13 +859,6 @@ run_affected_rust_lane() {
     type-fuzz) run_focused_rust_crate terlan-type-fuzz ;;
     cli-integration)
       echo 'pre-commit: CLI adapters compiled by candidate workspace Clippy'
-      ;;
-    clippy)
-      if ! lane_has workspace; then
-        make --no-print-directory rust-clippy-compiler-precommit-check
-      else
-        make --no-print-directory rust-clippy-precommit-check
-      fi
       ;;
     test-orchestrator) run_focused_rust_crate terlan-test-orchestrator ;;
     rust-boundary-audit) run_focused_rust_binary terlan-rust-boundary-audit ;;
@@ -976,6 +969,11 @@ if lane_has rust-reports; then
   echo 'pre-commit: defer full Rust inventories to release validation'
 fi
 
+# Compiler source contracts must execute the exact staged candidate.  Activate
+# it before provisioning test companions or running Terlan source gates so one
+# candidate build owns every later compiler, VM, worker, and quality check.
+activate_staged_candidate_compiler
+
 # Native representation changes are cross-cutting: validate all bounded VM
 # source contracts before broad Cargo lanes, then mark them as consumed so
 # directly changed stdlib modules are not executed again by terlan.sh.
@@ -1031,9 +1029,9 @@ if lane_has summaries; then
   echo 'pre-commit: early summary drift'
   run_summaries_lane
 fi
-# Static shell and Clippy diagnostics are cheap candidate contracts. Run them
-# before broad Rust suites so deterministic source failures cannot invalidate
-# an expensive test result. Proof validation still follows its runtime owner.
+# Static shell diagnostics are cheap candidate contracts. Run them before
+# broad Rust suites so deterministic source failures cannot invalidate an
+# expensive test result. Proof validation still follows its runtime owner.
 if lane_has shell; then
   echo 'pre-commit: early shell syntax'
   while IFS= read -r path; do
@@ -1056,27 +1054,15 @@ if preflight_has artifact-bootstrap; then
 fi
 
 # Focused Terlan and generated-contract checks above are cheaper and produce
-# more actionable diagnostics than broad Cargo suites. Clippy must precede
-# candidate test compilation: a static lint failure must never invalidate a
-# successfully compiled multi-minute test binary.
+# more actionable diagnostics than broad Cargo suites.  Clippy owns a distinct
+# Rust artifact and used to compile the compiler graph a second time before
+# tests.  Release validation and CI retain that lint gate; pre-commit spends
+# its bounded budget on executable correctness tests for the staged candidate.
 remaining_plan="${plan%.plan}.remaining-plan"
 : > "$remaining_plan"
-early_clippy=false
-if lane_has clippy; then early_clippy=true; fi
-if [[ "$early_clippy" == true ]]; then
-  affected_rust_lane_supported=true
-  if run_cached_affected_rust_lane clippy; then
-    echo 'pre-commit: early affected Rust lane passed: clippy'
-  else
-    clippy_status=$?
-    echo 'pre-commit: early affected Rust lane failed: clippy' >&2
-    exit "$clippy_status"
-  fi
+if lane_has clippy; then
+  echo 'pre-commit: defer Clippy to release validation'
 fi
-# The bootstrap compiler may plan and run cheap source gates, but every
-# remaining compiler contract must execute the exact staged candidate. Build
-# it once after static admission, then bind later receipts to that executable.
-activate_staged_candidate_compiler
 if preflight_has negative-api; then
   run_negative_api_contracts
 fi

@@ -70,6 +70,7 @@ fn same_signature_declaration_origins_share_the_total_capture_bound() {
         params: vec![Type::Int],
         ret: Type::Int,
         generic_params: Vec::new(),
+        generic_vars: Vec::new(),
         bounds: Vec::new(),
     };
     let (_, observations) = capture(|| {

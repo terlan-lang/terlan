@@ -125,6 +125,89 @@ pub sample(): Int -> score_with(Value(7)) + score_with(Value(8)).
     );
 }
 
+/// Imported generic conformances refine output-only parameters in declared order.
+#[test]
+fn imported_generic_provider_refines_outputs_and_explicit_arguments() {
+    let contract = parse_module_as_syntax_output(
+        r#"
+module fixture.Lookup.
+
+pub trait Lookup[Provider, Value, Failure] {
+    lookup(provider: Provider): std.core.Result[Value, Failure].
+}.
+"#,
+    )
+    .expect("lookup contract");
+    let provider = parse_module_as_syntax_output(
+        r#"
+module fixture.GenericProvider.
+
+import std.core.Result.{Ok}.
+import type fixture.Lookup.{Lookup}.
+
+pub type LookupFailure: Int = REJECTED = 0.
+
+pub struct GenericProvider[Value] implements Lookup[GenericProvider[Value], Value, LookupFailure] {
+    stored: Value,
+}.
+
+pub constructor GenericProvider[Value] {
+    (value: Value): GenericProvider[Value] -> GenericProvider {stored: value}
+}.
+
+pub (provider: GenericProvider[Value]) lookup(): std.core.Result[Value, LookupFailure] ->
+    Ok(provider.stored).
+"#,
+    )
+    .expect("generic provider");
+    let consumer_provider = parse_module_as_syntax_output(
+        r#"
+module fixture.ConsumerProvider.
+
+import fixture.Lookup.
+import type fixture.Lookup.{Lookup}.
+
+pub resolve[Provider, Value, Failure](
+    provider: Provider,
+)[Lookup[Provider, Value, Failure]]: std.core.Result[Value, Failure] ->
+    Lookup.lookup(provider).
+"#,
+    )
+    .expect("consumer provider");
+
+    let mut interfaces = HashMap::new();
+    for module in [&contract, &provider, &consumer_provider] {
+        interfaces.insert(
+            module.module_name.clone(),
+            syntax_module_output_to_interface(module),
+        );
+    }
+
+    let consumer = parse_module_as_syntax_output(
+        r#"
+module fixture.Consumer.
+
+import fixture.ConsumerProvider.{resolve}.
+import fixture.GenericProvider.{GenericProvider}.
+import type fixture.GenericProvider.{GenericProvider, LookupFailure}.
+
+pub inferred(): std.core.Result[Int, LookupFailure] ->
+    resolve(GenericProvider(42)).
+
+pub explicit(): std.core.Result[Int, LookupFailure] ->
+    resolve[GenericProvider[Int], Int, LookupFailure](GenericProvider(42)).
+"#,
+    )
+    .expect("consumer fixture");
+    let resolved = resolve_syntax_module_output_with_interfaces(&consumer, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&consumer, &resolved);
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected diagnostics: {diagnostics:?}"
+    );
+}
+
 /// A same-leaf trait from another provider cannot satisfy the bound.
 #[test]
 fn selected_imported_function_rejects_unrelated_provider_conformance() {

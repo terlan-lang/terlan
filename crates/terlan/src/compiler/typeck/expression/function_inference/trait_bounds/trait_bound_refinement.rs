@@ -20,9 +20,10 @@ pub(crate) fn refine_call_local_trait_bounds(
         if bound.trait_name == STRUCTURAL_IMPLICATION_BOUND {
             continue;
         }
-        let Some(candidates) = ctx.trait_bound_impl_type_args.get(&bound.trait_name) else {
+        let candidates = trait_bound_implementation_candidates(&bound.trait_name, ctx);
+        if candidates.is_empty() {
             continue;
-        };
+        }
         let resolved = bound
             .trait_args
             .iter()
@@ -45,7 +46,7 @@ pub(crate) fn refine_call_local_trait_bounds(
         }
 
         let mut refinements = Vec::<(Vec<Type>, HashMap<TypeVarId, Type>)>::new();
-        for candidate in candidates {
+        for candidate in &candidates {
             if candidate.len() != resolved.len() {
                 continue;
             }

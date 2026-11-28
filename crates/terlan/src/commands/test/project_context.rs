@@ -52,7 +52,7 @@ pub(super) fn run_js_test_directory(
         return ExitCode::from(1);
     }
 
-    run_js_test_files(args, state, profile, files)
+    run_js_test_files(args, state, profile, files, &[])
 }
 
 /// Executes all test modules below one directory through the Terlan VM.
@@ -92,7 +92,7 @@ pub(super) fn run_terlan_vm_test_directory(args: &TestArgs, state: CliState) -> 
         return ExitCode::from(1);
     }
 
-    run_terlan_vm_test_files(args, state, files, true)
+    run_terlan_vm_test_files(args, state, files, true, &[])
 }
 
 /// Prepares manifest source roots for one test file.
@@ -119,7 +119,22 @@ pub(super) fn prepare_test_project_context(
     profile: TargetProfile,
     exhaustive_project: bool,
 ) -> Result<(Option<TestProjectContext>, CliState), String> {
-    let Some(context) = discover_test_project_context(Path::new(path), state.cache_dir.as_ref())?
+    prepare_test_project_context_with_support(path, &[], state, profile, exhaustive_project)
+}
+
+/// Prepares a test project while admitting explicitly supplied support roots.
+pub(super) fn prepare_test_project_context_with_support(
+    path: &str,
+    support_paths: &[PathBuf],
+    state: CliState,
+    profile: TargetProfile,
+    exhaustive_project: bool,
+) -> Result<(Option<TestProjectContext>, CliState), String> {
+    let Some(context) = discover_test_project_context_with_support(
+        Path::new(path),
+        support_paths,
+        state.cache_dir.as_ref(),
+    )?
     else {
         return Ok((None, state));
     };
@@ -172,6 +187,15 @@ pub(super) fn discover_test_project_context(
     test_path: &Path,
     explicit_cache_dir: Option<&PathBuf>,
 ) -> Result<Option<TestProjectContext>, String> {
+    discover_test_project_context_with_support(test_path, &[], explicit_cache_dir)
+}
+
+/// Discovers a test project and adds source roots owning explicit support files.
+pub(super) fn discover_test_project_context_with_support(
+    test_path: &Path,
+    support_paths: &[PathBuf],
+    explicit_cache_dir: Option<&PathBuf>,
+) -> Result<Option<TestProjectContext>, String> {
     let Some(root) = discover_test_project_root(test_path) else {
         return Ok(None);
     };
@@ -195,6 +219,32 @@ pub(super) fn discover_test_project_context(
         .any(|candidate| candidate.starts_with(&test_source_root));
     if !already_present && !contains_configured_root {
         compilation_source_roots.push(test_source_root);
+    }
+    for support_path in support_paths {
+        let support_project = discover_test_project_root(support_path).ok_or_else(|| {
+            format!(
+                "test support source `{}` is not inside a Terlan project",
+                support_path.display()
+            )
+        })?;
+        if support_project != root {
+            return Err(format!(
+                "test support source `{}` belongs to project `{}`, expected `{}`",
+                support_path.display(),
+                support_project.display(),
+                root.display()
+            ));
+        }
+        let support_root = infer_test_source_root(support_path, &root)?;
+        let already_present = compilation_source_roots
+            .iter()
+            .any(|candidate| candidate == &support_root);
+        let contains_configured_root = compilation_source_roots
+            .iter()
+            .any(|candidate| candidate.starts_with(&support_root));
+        if !already_present && !contains_configured_root {
+            compilation_source_roots.push(support_root);
+        }
     }
 
     let coverage_source_roots = manifest

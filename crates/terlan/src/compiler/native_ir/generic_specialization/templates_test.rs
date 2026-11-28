@@ -109,3 +109,61 @@ fn structural_field_projection_covers_records_products_and_maps() {
         assert_eq!(templates.field_type(&ty, "missing", "app"), None);
     }
 }
+
+#[test]
+fn generic_bound_refinement_uses_known_provider_arguments() {
+    let mut templates = CallableTemplates::default();
+    templates.conformances.insert(
+        "Lookup".into(),
+        vec![nominal_parameters::GenericConformance {
+            instance: CoreType::Apply {
+                constructor: "Lookup".into(),
+                args: vec![
+                    CoreType::Apply {
+                        constructor: "Provider".into(),
+                        args: vec![CoreType::Named("Item".into())],
+                    },
+                    CoreType::Named("Item".into()),
+                    CoreType::Int,
+                ],
+            },
+            generic_params: vec!["Item".into()],
+        }],
+    );
+    let function = crate::terlan_typeck::CoreFunction {
+        name: "resolve".into(),
+        receiver_method: false,
+        receiver_mutable: false,
+        receiver_command: false,
+        source: None,
+        trait_method: None,
+        arity: 1,
+        public: true,
+        generic_params: vec!["Owner".into(), "Value".into(), "Failure".into()],
+        generic_bounds: vec![CoreType::Apply {
+            constructor: "Lookup".into(),
+            args: vec![
+                CoreType::Named("Owner".into()),
+                CoreType::Named("Value".into()),
+                CoreType::Named("Failure".into()),
+            ],
+        }],
+        native_operation: None,
+        params: Vec::new(),
+        return_type: "Result[Value, Failure]".into(),
+        core_return_type: None,
+        clauses: Vec::new(),
+    };
+    let mut substitution = HashMap::from([(
+        "Owner".into(),
+        CoreType::Apply {
+            constructor: "Provider".into(),
+            args: vec![CoreType::String],
+        },
+    )]);
+
+    templates.refine_generic_bounds(&function, &mut substitution);
+
+    assert_eq!(substitution.get("Value"), Some(&CoreType::String));
+    assert_eq!(substitution.get("Failure"), Some(&CoreType::Int));
+}

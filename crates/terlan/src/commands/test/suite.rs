@@ -18,8 +18,9 @@ use super::project_closure::{
     compile_project_source_core_closure, compile_project_source_core_modules,
 };
 use super::project_context::{
-    discover_test_project_context, discover_test_project_root, prepare_test_project_context,
-    reachable_native_helper_environment, test_target_profile_options,
+    discover_test_project_context_with_support, discover_test_project_root,
+    prepare_test_project_context_with_support, reachable_native_helper_environment,
+    test_target_profile_options,
 };
 use super::style::TestOutputStyle;
 use super::vm_runner::run_discovered_terlan_vm_tests;
@@ -54,6 +55,7 @@ pub(super) fn run_js_test_files(
     mut state: CliState,
     profile: TargetProfile,
     files: Vec<PathBuf>,
+    support_files: &[PathBuf],
 ) -> ExitCode {
     state.target_profile = profile;
     let mut groups: Vec<(TestFileGroup, Vec<PathBuf>)> = Vec::new();
@@ -72,15 +74,23 @@ pub(super) fn run_js_test_files(
     let cache_enabled = args.test_names.is_empty()
         && std::env::var("TERLAN_TEST_FORCE_RERUN").as_deref() != Ok("1");
     let target = format!("js-{}", profile.as_str());
-    for (_, files) in groups {
-        let discovered_context =
-            match discover_test_project_context(&files[0], state.cache_dir.as_ref()) {
-                Ok(context) => context,
-                Err(message) => {
-                    eprintln!("{message}");
-                    return ExitCode::from(1);
-                }
-            };
+    for (group, files) in groups {
+        let group_support = support_files
+            .iter()
+            .filter(|support| test_file_group(support) == group)
+            .cloned()
+            .collect::<Vec<_>>();
+        let discovered_context = match discover_test_project_context_with_support(
+            &files[0],
+            &group_support,
+            state.cache_dir.as_ref(),
+        ) {
+            Ok(context) => context,
+            Err(message) => {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+        };
         let cache_root = result_cache_root(discovered_context.as_ref(), &state);
         let fingerprint_base = if cache_enabled {
             match test_result_fingerprint_base(discovered_context.as_ref(), &state, &target, &files)
@@ -119,14 +129,19 @@ pub(super) fn run_js_test_files(
             continue;
         };
         let first_path = first.to_string_lossy().into_owned();
-        let (_, project_state) =
-            match prepare_test_project_context(&first_path, state.clone(), profile, true) {
-                Ok(result) => result,
-                Err(message) => {
-                    eprintln!("{message}");
-                    return ExitCode::from(1);
-                }
-            };
+        let (_, project_state) = match prepare_test_project_context_with_support(
+            &first_path,
+            &group_support,
+            state.clone(),
+            profile,
+            true,
+        ) {
+            Ok(result) => result,
+            Err(message) => {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+        };
         for (file, fingerprint) in pending {
             let path = file.to_string_lossy().into_owned();
             let source = match crate::support::read_file(&path) {
@@ -190,6 +205,7 @@ pub(super) fn run_terlan_vm_test_files(
     state: CliState,
     files: Vec<PathBuf>,
     exhaustive_project: bool,
+    support_files: &[PathBuf],
 ) -> ExitCode {
     let mut groups: Vec<(TestFileGroup, Vec<PathBuf>)> = Vec::new();
     for file in files {
@@ -206,12 +222,18 @@ pub(super) fn run_terlan_vm_test_files(
 
     let mut failed = false;
     let mut coverage = args.coverage.then(DeclarationCoverage::default);
-    for (_, files) in groups {
+    for (group, files) in groups {
+        let group_support = support_files
+            .iter()
+            .filter(|support| test_file_group(support) == group)
+            .cloned()
+            .collect::<Vec<_>>();
         if run_terlan_vm_test_file_group(
             args,
             state.clone(),
             &files,
             exhaustive_project,
+            &group_support,
             coverage.as_mut(),
         ) != ExitCode::SUCCESS
         {
@@ -413,19 +435,23 @@ fn run_terlan_vm_test_file_group(
     state: CliState,
     files: &[PathBuf],
     exhaustive_project: bool,
+    support_files: &[PathBuf],
     coverage: Option<&mut DeclarationCoverage>,
 ) -> ExitCode {
     let Some(first_file) = files.first() else {
         return ExitCode::SUCCESS;
     };
-    let discovered_context =
-        match discover_test_project_context(first_file, state.cache_dir.as_ref()) {
-            Ok(context) => context,
-            Err(message) => {
-                eprintln!("{message}");
-                return ExitCode::from(1);
-            }
-        };
+    let discovered_context = match discover_test_project_context_with_support(
+        first_file,
+        support_files,
+        state.cache_dir.as_ref(),
+    ) {
+        Ok(context) => context,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    };
     let cache_enabled = !args.coverage
         && !args.benchmark
         && args.test_names.is_empty()
@@ -474,14 +500,19 @@ fn run_terlan_vm_test_file_group(
     // `exhaustive_project` is set. Preparing interfaces here is sufficient;
     // eagerly checking implementations would compile the same source closure
     // twice before native planning begins.
-    let (project_context, mut state) =
-        match prepare_test_project_context(&first_path, state, TargetProfile::Vm, false) {
-            Ok(result) => result,
-            Err(message) => {
-                eprintln!("{message}");
-                return ExitCode::from(1);
-            }
-        };
+    let (project_context, mut state) = match prepare_test_project_context_with_support(
+        &first_path,
+        support_files,
+        state,
+        TargetProfile::Vm,
+        false,
+    ) {
+        Ok(result) => result,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    };
     state.target_profile = TargetProfile::Vm;
 
     let kind = if args.benchmark {

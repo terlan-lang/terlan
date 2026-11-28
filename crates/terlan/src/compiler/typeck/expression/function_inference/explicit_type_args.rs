@@ -14,8 +14,8 @@ use super::*;
 ///   unparseable type argument.
 ///
 /// Transformation:
-/// - Collects type variables from parameters, return type, and bounds in first
-///   occurrence order, parses explicit source type arguments with the current
+/// - Uses the declaration-ordered generic identities retained by the scheme,
+///   parses explicit source type arguments with the current
 ///   module type context, and unifies each variable with its supplied type.
 pub(super) fn bind_explicit_call_type_args(
     scheme: &FunctionScheme,
@@ -28,7 +28,7 @@ pub(super) fn bind_explicit_call_type_args(
         return Ok(());
     }
 
-    let generic_vars = ordered_function_scheme_type_vars(scheme);
+    let generic_vars = scheme.generic_vars.clone();
     if generic_vars.len() != type_args.len() {
         let name = function_name.unwrap_or("function");
         return Err(format!(
@@ -53,7 +53,6 @@ pub(super) fn bind_explicit_call_type_args(
 
     Ok(())
 }
-
 fn bind_explicit_const_arg(
     var: TypeVarId,
     supplied: Type,
@@ -304,190 +303,5 @@ fn is_bare_generic_alias_constructor(ty: &Type, aliases: &HashMap<String, TypeAl
                 .is_some_and(|alias| !alias.params.is_empty())
         }
         _ => false,
-    }
-}
-
-/// Collects function-scheme type variables in deterministic first-use order.
-///
-/// Inputs:
-/// - `scheme`: instantiated function scheme.
-///
-/// Output:
-/// - Type variable identifiers in the order explicit call type arguments bind
-///   to them.
-///
-/// Transformation:
-/// - Traverses parameters, return type, and bounds recursively while preserving
-///   first occurrence order and removing duplicates.
-fn ordered_function_scheme_type_vars(scheme: &FunctionScheme) -> Vec<TypeVarId> {
-    let mut vars = Vec::new();
-    for param in &scheme.params {
-        collect_type_vars_in_order(param, &mut vars);
-    }
-    collect_type_vars_in_order(&scheme.ret, &mut vars);
-    for bound in &scheme.bounds {
-        for arg in &bound.trait_args {
-            collect_type_vars_in_order(arg, &mut vars);
-        }
-    }
-    vars
-}
-
-/// Collects type variables from one type in first-use order.
-///
-/// Inputs:
-/// - `ty`: type to inspect.
-/// - `vars`: accumulator preserving existing order.
-///
-/// Output:
-/// - No direct return value; `vars` is extended in place.
-///
-/// Transformation:
-/// - Recursively walks structural type forms and appends each unseen
-///   `Type::Var` identifier exactly once.
-fn collect_type_vars_in_order(ty: &Type, vars: &mut Vec<TypeVarId>) {
-    match ty {
-        Type::Var(id) => {
-            if !vars.contains(id) {
-                vars.push(*id);
-            }
-        }
-        Type::Apply { constructor, args } => {
-            if !vars.contains(constructor) {
-                vars.push(*constructor);
-            }
-            for arg in args {
-                collect_type_vars_in_order(arg, vars);
-            }
-        }
-        Type::Existential { params, body } => {
-            collect_type_vars_in_order_excluding(body, vars, params);
-        }
-        Type::List(inner) => collect_type_vars_in_order(inner, vars),
-        Type::Tuple(items) | Type::Union(items) => {
-            for item in items {
-                collect_type_vars_in_order(item, vars);
-            }
-        }
-        Type::Map(fields) => {
-            for field in fields {
-                collect_type_vars_in_order(&field.value, vars);
-            }
-        }
-        Type::Array { size, elem } => {
-            if let crate::terlan_typeck::types::ArraySize::Param(id) = size {
-                if !vars.contains(id) {
-                    vars.push(*id);
-                }
-            }
-            collect_type_vars_in_order(elem, vars);
-        }
-        Type::Named { args, .. } => {
-            for arg in args {
-                collect_type_vars_in_order(arg, vars);
-            }
-        }
-        Type::Function { params, ret } => {
-            for param in params {
-                collect_type_vars_in_order(param, vars);
-            }
-            collect_type_vars_in_order(ret, vars);
-        }
-        Type::Int
-        | Type::Float
-        | Type::Number
-        | Type::Binary
-        | Type::Atom
-        | Type::Bool
-        | Type::Term
-        | Type::Dynamic
-        | Type::Never
-        | Type::Placeholder
-        | Type::LiteralAtom(_)
-        | Type::LiteralInt(_)
-        | Type::LiteralBool(_) => {}
-    }
-}
-
-/// Collects free type variables while excluding existential binders.
-///
-/// Inputs:
-/// - `ty`: type tree to inspect.
-/// - `vars`: accumulator preserving first-use order.
-/// - `excluded`: locally bound type-variable ids to ignore.
-///
-/// Output:
-/// - No direct return value; free variables are appended to `vars`.
-///
-/// Transformation:
-/// - Walks the same structures as `collect_type_vars_in_order`, extending the
-///   exclusion set through nested existential scopes.
-fn collect_type_vars_in_order_excluding(
-    ty: &Type,
-    vars: &mut Vec<TypeVarId>,
-    excluded: &[TypeVarId],
-) {
-    match ty {
-        Type::Var(id) => {
-            if !excluded.contains(id) && !vars.contains(id) {
-                vars.push(*id);
-            }
-        }
-        Type::Apply { constructor, args } => {
-            if !excluded.contains(constructor) && !vars.contains(constructor) {
-                vars.push(*constructor);
-            }
-            for arg in args {
-                collect_type_vars_in_order_excluding(arg, vars, excluded);
-            }
-        }
-        Type::Existential { params, body } => {
-            let mut nested_excluded = excluded.to_vec();
-            nested_excluded.extend(params);
-            collect_type_vars_in_order_excluding(body, vars, &nested_excluded);
-        }
-        Type::List(inner) => collect_type_vars_in_order_excluding(inner, vars, excluded),
-        Type::Tuple(items) | Type::Union(items) => {
-            for item in items {
-                collect_type_vars_in_order_excluding(item, vars, excluded);
-            }
-        }
-        Type::Map(fields) => {
-            for field in fields {
-                collect_type_vars_in_order_excluding(&field.value, vars, excluded);
-            }
-        }
-        Type::Array { size, elem } => {
-            if let crate::terlan_typeck::types::ArraySize::Param(id) = size {
-                if !excluded.contains(id) && !vars.contains(id) {
-                    vars.push(*id);
-                }
-            }
-            collect_type_vars_in_order_excluding(elem, vars, excluded);
-        }
-        Type::Named { args, .. } => {
-            for arg in args {
-                collect_type_vars_in_order_excluding(arg, vars, excluded);
-            }
-        }
-        Type::Function { params, ret } => {
-            for param in params {
-                collect_type_vars_in_order_excluding(param, vars, excluded);
-            }
-            collect_type_vars_in_order_excluding(ret, vars, excluded);
-        }
-        Type::Int
-        | Type::Float
-        | Type::Number
-        | Type::Binary
-        | Type::Atom
-        | Type::Bool
-        | Type::Term
-        | Type::Dynamic
-        | Type::Never
-        | Type::Placeholder
-        | Type::LiteralAtom(_)
-        | Type::LiteralInt(_)
-        | Type::LiteralBool(_) => {}
     }
 }

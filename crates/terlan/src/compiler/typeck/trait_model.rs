@@ -873,6 +873,11 @@ fn collect_trait_method_candidates(
                 .collect(),
             ret: substitute_type_vars(&parsed_return, &substitution),
             generic_params: method_sig.generic_params.clone(),
+            generic_vars: method_sig
+                .generic_params
+                .iter()
+                .filter_map(|param| method_vars.get(&normalize_type_param_name(param)).copied())
+                .collect(),
             bounds: specialized_bounds,
         };
 

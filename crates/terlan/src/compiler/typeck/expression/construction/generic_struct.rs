@@ -68,6 +68,7 @@ pub(in super::super) fn infer_generic_struct_construction(
             ctx.imported_type_names,
         ),
         generic_params: scheme.generic_params.clone(),
+        generic_vars: scheme.params.clone(),
         bounds: scheme.bounds.clone(),
     };
     Some(

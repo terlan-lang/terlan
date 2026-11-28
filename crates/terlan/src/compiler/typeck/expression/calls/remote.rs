@@ -745,6 +745,7 @@ fn qualify_imported_function_scheme(
             .collect(),
         ret: qualify_imported_named_heads(&scheme.ret, ctx),
         generic_params: scheme.generic_params.clone(),
+        generic_vars: scheme.generic_vars.clone(),
         bounds: scheme
             .bounds
             .iter()

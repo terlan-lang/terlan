@@ -208,6 +208,7 @@ fn extend_receiver_method_dispatch_with_imported_receiver_methods(
                                 params,
                                 ret: scheme.ret,
                                 generic_params: scheme.generic_params,
+                                generic_vars: scheme.generic_vars,
                                 bounds: scheme.bounds,
                             },
                             param_names: signature
@@ -423,6 +424,7 @@ fn extend_receiver_method_dispatch_with_imported_struct_includes(
                                 params,
                                 ret: scheme.ret,
                                 generic_params: scheme.generic_params,
+                                generic_vars: scheme.generic_vars,
                                 bounds: scheme.bounds,
                             },
                             param_names: signature
@@ -690,6 +692,10 @@ fn receiver_method_dispatch_signature(
             params,
             ret,
             generic_params: generic_params.to_vec(),
+            generic_vars: generic_params
+                .iter()
+                .filter_map(|param| vars.get(&normalize_type_param_name(param)).copied())
+                .collect(),
             bounds,
         },
         param_names,

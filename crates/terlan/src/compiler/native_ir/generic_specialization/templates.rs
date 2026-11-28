@@ -102,6 +102,14 @@ impl CallableTemplates {
                 continue;
             };
             let required = substitute(bound, &template.generic_params, substitution);
+            let unresolved = template
+                .generic_params
+                .iter()
+                .filter(|parameter| !substitution.contains_key(*parameter))
+                .cloned()
+                .map(|parameter| (parameter, CoreType::Never))
+                .collect::<HashMap<_, _>>();
+            let candidate_required = substitute(&required, &template.generic_params, &unresolved);
             let mut refinements = Vec::new();
             for candidate in candidates {
                 let instantiated = if candidate.generic_params.is_empty() {
@@ -110,15 +118,16 @@ impl CallableTemplates {
                     let mut candidate_values = HashMap::new();
                     if unify(
                         &candidate.instance,
-                        &required,
+                        &candidate_required,
                         &candidate.generic_params,
                         &mut candidate_values,
                     )
                     .is_err()
-                        || candidate
-                            .generic_params
-                            .iter()
-                            .any(|parameter| !candidate_values.contains_key(parameter))
+                        || candidate.generic_params.iter().any(|parameter| {
+                            candidate_values
+                                .get(parameter)
+                                .is_none_or(|value| value == &CoreType::Never)
+                        })
                     {
                         continue;
                     }

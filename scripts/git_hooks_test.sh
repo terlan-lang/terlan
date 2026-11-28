@@ -707,15 +707,16 @@ proof_pr_line=$(grep -n -F '"$quality" lean-proof-pr' "$proof_evidence_driver" |
 proof_runtime_line=$(grep -n -F '"$quality" lean-proof-runtime' "$proof_evidence_driver" | cut -d: -f1)
 test "$proof_pr_line" -lt "$proof_runtime_line"
 check_driver="$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq 'make --no-print-directory rust-clippy-compiler-precommit-check' "$check_driver"
-test "$(grep -Fc 'make --no-print-directory rust-clippy-compiler-precommit-check' "$check_driver")" -eq 1
-test "$(grep -Fc 'make --no-print-directory rust-clippy-precommit-check' "$check_driver")" -eq 1
-grep -Fq 'if ! lane_has workspace; then' "$check_driver"
-grep -Fq 'early affected Rust lane passed: clippy' "$check_driver"
-grep -Fq 'early affected Rust lane failed: clippy' "$check_driver"
-early_clippy_line=$(grep -n -F 'if run_cached_affected_rust_lane clippy; then' "$check_driver" | cut -d: -f1)
+grep -Fq 'defer Clippy to release validation' "$check_driver"
+if grep -Fq 'rust-clippy-compiler-precommit-check' "$check_driver"; then
+  echo 'Pre-commit still compiles a distinct compiler Clippy artifact' >&2
+  exit 1
+fi
+if grep -Fq 'rust-clippy-precommit-check' "$check_driver"; then
+  echo 'Pre-commit still compiles a distinct workspace Clippy artifact' >&2
+  exit 1
+fi
 affected_lane_loop_line=$(grep -n -F 'while IFS= read -r lane; do' "$check_driver" | tail -1 | cut -d: -f1)
-test "$early_clippy_line" -lt "$affected_lane_loop_line"
 candidate_activation_block=$(sed -n \
   '/^activate_staged_candidate_compiler()/,/^}/p' "$check_driver")
 grep -Fq "echo 'pre-commit: build and activate exact staged compiler'" \
@@ -745,7 +746,7 @@ grep -Fq 'compiler_validation_identity=$compiler_input_key' \
   <<< "$candidate_activation_block"
 candidate_activation_line=$(grep -n -F 'activate_staged_candidate_compiler' \
   "$check_driver" | tail -1 | cut -d: -f1)
-test "$early_clippy_line" -lt "$candidate_activation_line"
+test "$candidate_activation_line" -lt "$early_terlan_line"
 test "$candidate_activation_line" -lt "$affected_lane_loop_line"
 negative_api_line=$(grep -n -F 'run_negative_api_contracts' "$check_driver" \
   | tail -1 | cut -d: -f1)
@@ -829,12 +830,10 @@ grep -Fq '.terlan-native-worker-input' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'build --locked -p terlan --bin terlan-native-worker --features validation-union' \
   "$(dirname "$driver")/git_hooks/check.sh"
-compiler_bootstrap=$(grep -F 'make --no-print-directory rust-clippy-compiler-precommit-check' \
-  "$(dirname "$driver")/git_hooks/check.sh" | head -1)
-test -n "$compiler_bootstrap"
-[[ "$compiler_bootstrap" != *'--features validation-union'* ]]
-! grep -Fq 'build --locked -p terlan --bin terlc --bin terlan-vm' \
-  "$(dirname "$driver")/git_hooks/check.sh"
+test "$(grep -Fc 'build --locked -p terlan \' \
+  "$(dirname "$driver")/git_hooks/check.sh")" -ge 1
+test "$(grep -Fc 'activate_staged_candidate_compiler' \
+  "$(dirname "$driver")/git_hooks/check.sh")" -eq 2
 grep -Fq 'export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-worker"' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'reuse affected Rust lane' \
