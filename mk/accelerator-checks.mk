@@ -1,13 +1,15 @@
 # ---- GPU/tensor acceleration, ndarray, and native-binding checks ----
 .PHONY: native-binding-consistency-check
 # Verifies generated C/C++ bindings compile and match deterministic regeneration
+# Keep hook-owned compiler tests on the same feature graph as Clippy, the staged
+# compiler, and focused Rust lanes. A clean cache must build one test harness.
 native-binding-consistency-check:
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::fixtures_and_generation::structured_c_metadata_generates_real_ffi_package -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::cpp_binding_generator::generator::generator_test::fixtures_and_generation::structured_cpp_metadata_generates_real_cxx_package -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::pkg_config_distribution::checked_libpq_package_matches_deterministic_regeneration -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::ownership_adapters::integration::generated_c_adapter_compiles_and_enforces_public_protocol -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::cpp_binding_generator::generator::generator_test::fixtures_and_generation::generated_cxx_adapter_compiles_and_enforces_public_protocol -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::package_native_helper::transport_test
+	$(EXACT_CARGO_TEST) --features validation-union --locked -p terlan --lib commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::fixtures_and_generation::structured_c_metadata_generates_real_ffi_package -- --exact
+	$(EXACT_CARGO_TEST) --features validation-union --locked -p terlan --lib commands::bind::cpp_binding_generator::generator::generator_test::fixtures_and_generation::structured_cpp_metadata_generates_real_cxx_package -- --exact
+	$(EXACT_CARGO_TEST) --features validation-union --locked -p terlan --lib commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::pkg_config_distribution::checked_libpq_package_matches_deterministic_regeneration -- --exact
+	$(EXACT_CARGO_TEST) --features validation-union --locked -p terlan --lib commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::ownership_adapters::integration::generated_c_adapter_compiles_and_enforces_public_protocol -- --exact
+	$(EXACT_CARGO_TEST) --features validation-union --locked -p terlan --lib commands::bind::cpp_binding_generator::generator::generator_test::fixtures_and_generation::generated_cxx_adapter_compiles_and_enforces_public_protocol -- --exact
+	$(EXACT_CARGO_TEST) --features validation-union --locked -p terlan --lib runtime::vm::package_native_helper::transport_test
 
 
 # Checks native boundary terminology stays consistent

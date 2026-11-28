@@ -732,6 +732,8 @@ grep -Fq 'run_exact_cargo_test.sh --features validation-union' \
   <<< "$canonical_test_block"
 grep -Fq 'clippy -p terlan --lib --features validation-union' \
   "$(dirname "$driver")/../mk/code-quality.mk"
+test "$(grep -Fc '$(EXACT_CARGO_TEST) --features validation-union' \
+  "$(dirname "$driver")/../mk/accelerator-checks.mk")" = 6
 grep -Fq 'mv "$temporary_receipt" "$compiler_input_receipt"' \
   <<< "$candidate_activation_block"
 grep -Fq 'terlc="$candidate_snapshot_terlc"' <<< "$candidate_activation_block"
