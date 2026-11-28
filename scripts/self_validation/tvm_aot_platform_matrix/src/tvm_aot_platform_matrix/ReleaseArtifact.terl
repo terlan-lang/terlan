@@ -3,7 +3,7 @@
  */
 module tvm_aot_platform_matrix.ReleaseArtifact.
 
-import std.core.Option.{None, Some, with_default_else}.
+import std.core.Option.{None, Some}.
 import std.core.String.
 import std.io.Console.{eprintln, println}.
 import std.system.Environment.
@@ -14,6 +14,8 @@ import tvm_aot_platform_matrix.ReleasePackage.{package as package_release}.
 import tvm_aot_platform_matrix.ReleasePayload.{self_test as payload_self_test}.
 import tvm_aot_platform_matrix.ReleasePlatform.{description, detect, self_test as platform_self_test}.
 import tvm_aot_platform_matrix.ReleaseSmoke.{smoke as smoke_release}.
+
+import type std.core.Option.
 
 failure(message: String): Bool ->
     let _printed = eprintln(String.append("error[release_artifact]: ", message));

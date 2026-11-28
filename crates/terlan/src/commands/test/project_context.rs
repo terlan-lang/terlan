@@ -185,6 +185,18 @@ pub(super) fn discover_test_project_context(
     let dependencies = crate::commands::build::resolve_project_test_dependencies(&root, &manifest)
         .map_err(|error| format!("failed to resolve test project dependencies: {error}"))?;
 
+    let mut compilation_source_roots = dependencies.source_roots;
+    let test_source_root = infer_test_source_root(test_path, &root)?;
+    let already_present = compilation_source_roots
+        .iter()
+        .any(|candidate| candidate == &test_source_root);
+    let contains_configured_root = compilation_source_roots
+        .iter()
+        .any(|candidate| candidate.starts_with(&test_source_root));
+    if !already_present && !contains_configured_root {
+        compilation_source_roots.push(test_source_root);
+    }
+
     let coverage_source_roots = manifest
         .source_roots
         .iter()
@@ -193,11 +205,58 @@ pub(super) fn discover_test_project_context(
     Ok(Some(TestProjectContext {
         project_root: root,
         cache_dir,
-        compilation_source_roots: dependencies.source_roots,
+        compilation_source_roots,
         coverage_source_roots,
         native_helper_environment: dependencies.native_helper_environment,
         native_helper_candidates: dependencies.native_helper_candidates,
     }))
+}
+
+/// Infers the source root that owns one active test module.
+///
+/// The root participates in compilation closure discovery only. Test suffix
+/// discovery still decides which modules execute, while coverage remains
+/// limited to the package's declared production roots.
+fn infer_test_source_root(test_path: &Path, project_root: &Path) -> Result<PathBuf, String> {
+    let canonical = test_path.canonicalize().map_err(|error| {
+        format!(
+            "cannot resolve test source `{}`: {error}",
+            test_path.display()
+        )
+    })?;
+    let source = fs::read_to_string(&canonical)
+        .map_err(|error| format!("cannot read test source `{}`: {error}", canonical.display()))?;
+    let syntax = crate::formal_pipeline::parse_source_as_syntax_output(
+        &canonical.to_string_lossy(),
+        &source,
+    )
+    .map_err(|error| format!("cannot parse test module layout: {error:?}"))?;
+    let mut source_root = canonical
+        .parent()
+        .ok_or_else(|| format!("test source `{}` has no parent", canonical.display()))?;
+    for _ in 1..syntax.module_name.split('.').count() {
+        source_root = source_root.parent().ok_or_else(|| {
+            format!(
+                "test source `{}` is too shallow for module `{}`",
+                canonical.display(),
+                syntax.module_name
+            )
+        })?;
+    }
+    let source_root = source_root.to_path_buf();
+    crate::commands::source_layout::validate_module_layout(
+        &source_root,
+        &canonical,
+        &syntax.module_name,
+    )?;
+    if !source_root.starts_with(project_root) {
+        return Err(format!(
+            "test source root `{}` escapes project `{}`",
+            source_root.display(),
+            project_root.display()
+        ));
+    }
+    Ok(source_root)
 }
 
 /// Resolves only native helpers whose provider modules survived test closure pruning.

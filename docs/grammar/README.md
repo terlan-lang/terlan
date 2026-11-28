@@ -459,6 +459,32 @@ similar to a typed default export. This is semantic resolution, not parser
 behavior: the grammar preserves the path, and the resolver decides whether a
 primary type exists and is visible.
 
+Importing a type admits the operation namespace defined by its provider module.
+Receiver calls need no separate function import, and static calls use the local
+type name. Constructors remain explicit value imports:
+
+```terlan
+import type std.core.Option.
+import std.core.Option.{Some}.
+
+pub present(): Option[Int] -> Some(7).
+pub value(option: Option[Int]): Int -> option.with_default(0).
+pub static_value(option: Option[Int]): Int -> Option.with_default(option, 0).
+```
+
+An explicit function import remains available when an unqualified call is
+intentional. It is lexical convenience, not a prerequisite for using an
+inherent operation:
+
+```terlan
+import std.core.Option.{with_default}.
+
+pub value(option: Option[Int]): Int -> with_default(option, 0).
+```
+
+Type imports do not introduce unqualified function names. Trait or extension
+methods from another provider also require their own imports.
+
 Selective imports preserve identifier class. A lower-case imported symbol must
 use a lower-case alias. An upper-case imported symbol must use an upper-case
 alias. The parser does not distinguish type names from constructor names during

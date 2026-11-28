@@ -6,7 +6,7 @@ module release_promotion.Main.
 import release_promotion.CandidateFiles.{basename}.
 import release_promotion.{CandidateEvidenceTest, CandidateFixture, CandidateInputs, Preflight, PreparationCommands, PreparationGraphTest, PreparationOwnerTest, ProcessActivityTest, PublicationBundle, PublicationCacheTest, PublicationChecks, PublicationPlan, Readiness}.
 import std.collections.List.
-import std.core.Option.{None, Some, with_default, with_default_else}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String}.
 import std.crypto.Hash.

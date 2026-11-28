@@ -5,7 +5,7 @@ module release_control.Main.
 
 import release_control.{Acceptance, Fixtures, Status, Submit, Support, Tag, Tests, Version}.
 import std.collections.List.
-import std.core.Option.{None, Some, with_default}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String}.
 import std.data.Json.
@@ -14,7 +14,7 @@ import std.io.{Directory, File}.
 import std.system.{Arguments, Environment}.
 import std.time.Clock.
 
-import type std.core.Result.
+import type std.core.{Option, Result}.
 import type std.data.Json.
 
 struct DispatchState {

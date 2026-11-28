@@ -4,7 +4,7 @@
 module tvm_aot_platform_matrix.ReleaseGeneratedArtifacts.
 
 import std.collections.List.{concat, length}.
-import std.core.Option.{None, Some, map}.
+import std.core.Option.{None, Some}.
 import std.core.Ordering.{Lt}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.

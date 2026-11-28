@@ -4,7 +4,7 @@
 module stdlib_interfaces.Build.
 
 import std.collections.List.
-import std.core.Option.{None, Some, with_default}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.io.Console.{println}.

@@ -3,7 +3,7 @@
  */
 module docs_static_release_parity.Artifact.
 
-import std.core.Option.{None, Some, with_default}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.crypto.Hash.

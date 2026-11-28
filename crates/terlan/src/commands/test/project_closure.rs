@@ -589,6 +589,34 @@ mod tests {
     }
 
     #[test]
+    fn focused_interface_preparation_visits_type_only_imports() {
+        let fixture = tempfile::tempdir().expect("type import closure fixture");
+        let root = fixture.path().join("src");
+        let cache = fixture.path().join("cache");
+        fs::create_dir_all(root.join("app")).expect("source layout");
+        fs::write(
+            root.join("app/Contract.terl"),
+            "module app.Contract.\npub struct Contract { value: Int }.\n",
+        )
+        .expect("type provider source");
+        let source = concat!(
+            "module app.FocusedTest.\n",
+            "import type app.Contract.{Contract}.\n",
+            "@test\npub works(): Bool -> true.\n",
+        );
+
+        prepare_project_source_interface_closure(
+            &context(&root, &cache),
+            &state(&cache),
+            "FocusedTest.terl",
+            source,
+        )
+        .expect("prepare type import closure");
+
+        assert!(cache.join("app.Contract.typi").is_file());
+    }
+
+    #[test]
     fn focused_interface_preparation_rejects_duplicate_modules() {
         let fixture = tempfile::tempdir().expect("duplicate closure fixture");
         let left = fixture.path().join("left");

@@ -1,6 +1,6 @@
 # Terlan 0.0.11 executable roadmap
 
-Status date: 2026-11-27
+Status date: 2026-11-28
 
 ## Outcome
 
@@ -38,6 +38,9 @@ and cannot inherit the native image budget below.
   complete package graph.
 - [ ] Keep ordinary local validation below the 10-minute goal and 15-minute
   hard ceiling. A phase silent for 10 seconds must emit progress.
+- [x] Compile pre-commit compiler binaries, Clippy, and affected Rust tests
+  under the single `validation-union` feature graph so Cargo reuses one
+  library and test harness instead of rebuilding incompatible feature sets.
 - [ ] Keep a warm focused source check below 5 seconds and 256 MiB peak RSS,
   and a cold focused source check below 15 seconds and 384 MiB peak RSS.
   Report discovered, loaded, reused, and invalidated interfaces plus attributed
@@ -95,6 +98,12 @@ application-level workarounds do not satisfy them.
   scalar/native-profile failure, or compiler stack overflow.
 - [ ] Treat receiver-provider imports as used when method resolution consumes
   them.
+- [x] Make a type import admit its provider's receiver and static operation
+  namespace while keeping unqualified calls behind explicit function imports
+  and constructors behind explicit value imports.
+- [x] Include type-only imports and transitively imported non-test support
+  modules in focused test compilation without adding test roots to package
+  coverage ownership.
 - [ ] Admit domain-neutral regressions for every item above before marking the
   corresponding compiler fix complete.
 
@@ -103,6 +112,19 @@ truncates division toward zero, and returns `None` for zero divisors or final
 results outside `Int`. Native ABI, Core intrinsic, bootstrap/direct JavaScript,
 and 100% standard-library declaration coverage exercise signed, truncating,
 widened, zero-divisor, and boundary-overflow cases.
+
+Type import resolution now binds the local type name to its defining module,
+including selected aliases, so both receiver calls and `Type.operation(...)`
+calls share one import contract. Focused test context derives the active test
+source root from its declared module identity and traverses type-only and
+ordinary imports from that root. Domain-neutral positive, negative, provider-
+retention, closure, and executable support-module regressions cover the
+contract.
+
+The compiler hook now applies the existing `validation-union` feature alias to
+its staged binaries, Clippy, and every focused `terlan` Rust-test lane. Hook
+contract tests reject regression to separate default or `quality-tools` build
+graphs.
 
 ## Release exit
 

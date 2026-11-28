@@ -391,7 +391,7 @@ chmod +x "$temporary/early-bindings/cache/debug/terlc" \
     bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
     > "$temporary/early-rust-order.log" 2>&1 || status=$?
   test "$status" = 42
-  grep -Fq 'cargo:test --profile dev --locked -p terlan --lib commands::doctor::doctor_test' "$calls"
+  grep -Fq 'cargo:test --profile dev --features validation-union --locked -p terlan --lib commands::doctor::doctor_test' "$calls"
   test "$(wc -l < "$calls")" = 1
   grep -Fq 'early affected Rust lane failed: commands-doctor' \
     "$temporary/early-rust-order.log"
@@ -481,8 +481,8 @@ chmod +x "$temporary/early-bindings/cache/debug/terlc" \
     RUST_TEST_THREADS=2 TERLAN_BUILD_JOBS=3 TERLAN_TEST_FORCE_RERUN=1 \
     bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
     > "$temporary/compiler-heavy-rust.log" 2>&1
-  grep -Fq 'cargo:test --profile dev --locked -p terlan --lib commands::build::vm_artifact:::tests=2:builds=3' "$calls"
-  grep -Fq 'cargo:test --profile dev --locked -p terlan --lib commands::build::build_test::tests::artifact_test::vm_artifacts:::tests=2:builds=3' "$calls"
+  grep -Fq 'cargo:test --profile dev --features validation-union --locked -p terlan --lib commands::build::vm_artifact:::tests=2:builds=3' "$calls"
+  grep -Fq 'cargo:test --profile dev --features validation-union --locked -p terlan --lib commands::build::build_test::tests::artifact_test::vm_artifacts:::tests=2:builds=3' "$calls"
   grep -Fq 'compiler-heavy Rust shape: tests=2 builds=3' \
     "$temporary/compiler-heavy-rust.log"
 )
@@ -726,7 +726,12 @@ grep -Fq 'latest_compiler_is_exact' <<< "$candidate_activation_block"
 grep -Fq -- '--bin terlc --bin terlan-vm --bin terlan-native-worker' \
   <<< "$candidate_activation_block"
 grep -Fq -- '--bin terlan-quality' <<< "$candidate_activation_block"
-grep -Fq -- '--features quality-tools' <<< "$candidate_activation_block"
+grep -Fq -- '--features validation-union' <<< "$candidate_activation_block"
+canonical_test_block=$(sed -n '/^run_exact_terlan_test()/,/^}/p' "$check_driver")
+grep -Fq 'run_exact_cargo_test.sh --features validation-union' \
+  <<< "$canonical_test_block"
+grep -Fq 'clippy -p terlan --lib --features validation-union' \
+  "$(dirname "$driver")/../mk/code-quality.mk"
 grep -Fq 'mv "$temporary_receipt" "$compiler_input_receipt"' \
   <<< "$candidate_activation_block"
 grep -Fq 'terlc="$candidate_snapshot_terlc"' <<< "$candidate_activation_block"
@@ -834,16 +839,18 @@ grep -Fq 'reuse affected Rust lane' \
   "$(dirname "$driver")/git_hooks/check.sh"
 phase_lane=$(sed -n '/^    phase)/,/^      ;;/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
-grep -Fq -- '--features validation-union' <<< "$phase_lane"
+grep -Fq 'run_exact_terlan_test' <<< "$phase_lane"
 native_ir_lane=$(sed -n '/^    native-ir)/,/^      ;;/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq 'if lane_has phase; then' <<< "$native_ir_lane"
-grep -Fq -- '--features validation-union compiler::native_ir::' <<< "$native_ir_lane"
+grep -Fq 'run_exact_terlan_test --locked -p terlan --lib compiler::native_ir::' \
+  <<< "$native_ir_lane"
 compiler_lane=$(sed -n '/^    syntax|compiler)/,/^      ;;/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq 'if lane_has phase; then' <<< "$compiler_lane"
-grep -Fq 'local_features=(--features validation-union)' <<< "$compiler_lane"
-grep -Fq '"${local_features[@]}" "$filter"' <<< "$compiler_lane"
+grep -Fq 'run_exact_terlan_test --locked -p terlan --lib "$filter"' \
+  <<< "$compiler_lane"
+! grep -Fq 'local_features' <<< "$compiler_lane"
 grep -Fq 'TERLAN_HOOK_COMPILER_INPUT_KEY="$compiler_validation_identity"' \
   "$(dirname "$driver")/git_hooks/check.sh"
 if grep -Fq 'generated Rust reports regenerated; return them for staging' \
@@ -1035,7 +1042,7 @@ git -C "$temporary/report-handoff" add .
   test "$status" = 44
   grep -Fq 'defer full Rust inventories to release validation' \
     "$temporary/report-handoff.log"
-  grep -Fq 'cargo:test --profile dev --locked -p terlan --lib commands::doctor::doctor_test' \
+  grep -Fq 'cargo:test --profile dev --features validation-union --locked -p terlan --lib commands::doctor::doctor_test' \
     "$temporary/report-handoff.calls"
 )
 

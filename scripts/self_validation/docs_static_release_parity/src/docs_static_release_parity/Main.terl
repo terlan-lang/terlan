@@ -6,7 +6,7 @@ module docs_static_release_parity.Main.
 import docs_static_release_parity.editor_release_parity.Main as EditorReleaseParity.
 import docs_static_release_parity.{Artifact, Support}.
 import std.collections.List.
-import std.core.Option.{None, Some, and_then, with_default_else}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.crypto.Hash.

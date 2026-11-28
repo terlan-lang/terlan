@@ -35,6 +35,17 @@ fn qualified_calls_retain_their_visible_source_provider() {
 }
 
 #[test]
+fn type_qualified_inherent_calls_retain_their_provider() {
+    assert_eq!(
+        dependencies(
+            "module consumer. import type library.Value. pub show(value: Value): String -> Value.show(value).",
+            &["module library.Value. pub type Value = Int. pub (value: Value) show(): String -> \"value\"."],
+        ),
+        ["library.Value"]
+    );
+}
+
+#[test]
 fn deferred_receivers_retain_public_positive_trait_providers_only() {
     let providers = [
         "module library.Visible. pub trait Render[T] { render(value: T): String. }. pub impl Render[Bool] for Bool { render(value: Bool): String -> \"visible\". }.",

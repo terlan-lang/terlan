@@ -630,7 +630,7 @@ activate_staged_candidate_compiler() {
     echo 'pre-commit: build and activate exact staged compiler'
     cargo build --locked -p terlan \
       --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-quality \
-      --features quality-tools
+      --features validation-union
     source_directory="$CARGO_TARGET_DIR/debug"
   fi
   [[ -x "$source_directory/terlc" && ! -L "$source_directory/terlc" ]]
@@ -703,7 +703,10 @@ run_compiler_heavy_rust_tests() {
   test_threads=${RUST_TEST_THREADS:-$default_test_threads}
   echo "pre-commit: compiler-heavy Rust shape: tests=$test_threads builds=$build_threads"
   RUST_TEST_THREADS=$test_threads TERLAN_BUILD_JOBS=$build_threads \
-    bash scripts/run_exact_cargo_test.sh "$@"
+    run_exact_terlan_test "$@"
+}
+run_exact_terlan_test() {
+  bash scripts/run_exact_cargo_test.sh --features validation-union "$@"
 }
 run_commands_test_lane() {
   run_compiler_heavy_rust_tests --locked -p terlan --lib commands::test:: \
@@ -781,7 +784,6 @@ run_focused_rust_binary() {
 
 run_affected_rust_lane() {
   local lane=$1 filter
-  local -a local_features=()
   affected_rust_lane_supported=true
   case "$lane" in
     commands-test) run_commands_test_lane ;;
@@ -790,12 +792,12 @@ run_affected_rust_lane() {
       run_compiler_heavy_rust_tests --locked -p terlan --lib commands::
       ;;
     commands-emit-js)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::emit_js::
+      run_exact_terlan_test --locked -p terlan --lib commands::emit_js::
       ;;
     commands-build-cache)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
+      run_exact_terlan_test --locked -p terlan --lib \
         commands::build::source_roots_test::
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
+      run_exact_terlan_test --locked -p terlan --lib \
         commands::build::vm_artifact::parallel_compile_test::
       ;;
     commands-build)
@@ -803,52 +805,47 @@ run_affected_rust_lane() {
       ;;
     commands-vm-artifact) run_commands_vm_artifact_lane ;;
     commands-clean)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::clean::clean_test
+      run_exact_terlan_test --locked -p terlan --lib commands::clean::clean_test
       ;;
     commands-doctor)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::doctor::doctor_test
+      run_exact_terlan_test --locked -p terlan --lib commands::doctor::doctor_test
       ;;
     commands-init)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::init::init_test
+      run_exact_terlan_test --locked -p terlan --lib commands::init::init_test
       ;;
     phase)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
-        --features validation-union \
+      run_exact_terlan_test --locked -p terlan --lib \
         tests::run_phase_contract_fixtures_match_golden -- --exact
       ;;
     native-ir)
       if lane_has phase; then
         echo 'pre-commit: native IR and phase tests share validation-union artifact'
-        bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
-          --features validation-union compiler::native_ir::
+        run_exact_terlan_test --locked -p terlan --lib compiler::native_ir::
       else
-        bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib compiler::native_ir::
+        run_exact_terlan_test --locked -p terlan --lib compiler::native_ir::
       fi
       ;;
     native-construction)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
+      run_exact_terlan_test --locked -p terlan --lib \
         compiler::native_ir::source_constructor_test::
       ;;
     runtime)
       ensure_native_test_companions
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib runtime::
+      run_exact_terlan_test --locked -p terlan --lib runtime::
       ;;
     validation)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib validation::
+      run_exact_terlan_test --locked -p terlan --lib validation::
       ;;
     quality)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
-        --features=quality-tools quality::
+      run_exact_terlan_test --locked -p terlan --lib quality::
       ;;
     syntax|compiler)
       filter=compiler::
       if [[ "$lane" == syntax ]]; then filter=compiler::syntax::; fi
       if lane_has phase; then
         echo "pre-commit: $lane and phase tests share validation-union artifact"
-        local_features=(--features validation-union)
       fi
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
-        "${local_features[@]}" "$filter"
+      run_exact_terlan_test --locked -p terlan --lib "$filter"
       ;;
     workspace)
       run_workspace_suite

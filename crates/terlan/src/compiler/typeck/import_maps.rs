@@ -376,8 +376,10 @@ fn interface_identity_type_alias(interface: &ModuleInterface, name: &str) -> Typ
 ///   as binding `Set` to `std.collections.Set`.
 /// - Treats selected module aliases such as `import std.text.{format as fmt}.`
 ///   as binding `fmt` to `std.text.format`.
-/// - Skips type-only and asset imports because they do not create value-level
-///   module call targets.
+/// - Type imports bind their local type name to the defining module so its
+///   receiver and static functions remain available through the type namespace
+///   without a separate value import.
+/// - Skips asset imports because they do not create module call targets.
 fn collect_syntax_module_aliases(
     module: &SyntaxModuleOutput,
     interfaces: &HashMap<String, ModuleInterface>,
@@ -389,12 +391,41 @@ fn collect_syntax_module_aliases(
             import_kind: SyntaxImportKind::Module,
             module_name,
             items,
-            is_type: false,
+            is_type,
             ..
         } = &declaration.payload
         else {
             continue;
         };
+
+        if *is_type {
+            for item in items {
+                let provider = interfaces
+                    .get(module_name)
+                    .filter(|interface| {
+                        interface.public_types.contains(&item.name)
+                            || interface.opaque_types.contains(&item.name)
+                    })
+                    .map(|_| module_name.clone())
+                    .or_else(|| {
+                        let nested = format!("{module_name}.{}", item.name);
+                        interfaces
+                            .get(&nested)
+                            .filter(|interface| {
+                                interface.public_types.contains(&item.name)
+                                    || interface.opaque_types.contains(&item.name)
+                            })
+                            .map(|_| nested)
+                    });
+                if let Some(provider) = provider {
+                    aliases.insert(
+                        item.as_alias.clone().unwrap_or_else(|| item.name.clone()),
+                        provider,
+                    );
+                }
+            }
+            continue;
+        }
 
         if let Some(interface) = interfaces.get(module_name) {
             if let Some(leaf) = module_name.rsplit('.').next().filter(|leaf| {

@@ -5,7 +5,7 @@ module release_promotion.OwnerTools.
 
 import release_promotion.{OwnerStorage, PreparationOwner}.
 import std.collections.List.
-import std.core.Option.{None, Some, with_default}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.crypto.Hash.

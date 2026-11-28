@@ -6,7 +6,7 @@ module release_promotion.NativeCycle.
 
 import release_promotion.{NativeActivity, OwnerNative, OwnerStorage, PreparationOwner}.
 import std.collections.List.{concat}.
-import std.core.Option.{None, Some, with_default}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.crypto.Hash.
@@ -15,7 +15,7 @@ import std.io.File.
 import std.io.File.{NotFound}.
 
 import type release_promotion.PreparationOwner.Owner.
-import type std.core.Result.
+import type std.core.{Option, Result}.
 import type std.data.Json.
 
 pub path(candidate: String, graph: String): String ->

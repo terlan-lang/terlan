@@ -4,7 +4,7 @@
 module release_closeout.Support.
 
 import std.collections.List.
-import std.core.Option.{None, Some, map, with_default, with_default_else}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.crypto.Hash.

@@ -829,6 +829,57 @@ fn focused_project_test_skips_unreachable_source_modules() {
     assert_eq!(result, ExitCode::SUCCESS);
 }
 
+/// Verifies a focused test can import a non-test sibling support module.
+#[test]
+fn focused_project_test_loads_transitive_test_support() {
+    let root = std::env::temp_dir().join(format!(
+        "terlan_vm_test_support_closure_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos(),
+    ));
+    fs::create_dir_all(root.join("src/app")).expect("production source root");
+    fs::create_dir_all(root.join("tests/app")).expect("test source root");
+    fs::write(
+        root.join("terlan.toml"),
+        "[package]\nname = \"app\"\nversion = \"0.0.0\"\n\n[build]\nsource_roots = [\"src\"]\n",
+    )
+    .expect("project manifest");
+    fs::write(
+        root.join("tests/app/Fixture.terl"),
+        "module app.Fixture.\npub answer(): Int -> 42.\n",
+    )
+    .expect("support source");
+    let test = root.join("tests/app/SupportConsumerTest.terl");
+    fs::write(
+        &test,
+        concat!(
+            "module app.SupportConsumerTest.\n",
+            "import app.Fixture.{answer}.\n\n",
+            "@test\n",
+            "pub imported_support_executes(): Bool -> answer() == 42.\n",
+        ),
+    )
+    .expect("consumer test");
+
+    let result = run(
+        CliCommand {
+            verb: Some("test".to_string()),
+            args: vec![test.to_string_lossy().into_owned()],
+        },
+        CliState {
+            out_dir: root.join("out"),
+            cache_dir: Some(root.join(".terlan")),
+            ..CliState::default()
+        },
+    );
+    fs::remove_dir_all(root).expect("remove test support fixture");
+
+    assert_eq!(result, ExitCode::SUCCESS);
+}
+
 /// Verifies focused native imports with nested generic results stay bounded.
 ///
 /// Inputs:

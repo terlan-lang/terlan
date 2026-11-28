@@ -85,6 +85,92 @@ pub demo(): Bool ->\n\
     );
 }
 
+/// Verifies one type import exposes inherent receiver and static operations.
+#[test]
+fn type_import_exposes_receiver_and_static_calls() {
+    let provider = parse_interface_module_as_syntax_output(
+        r#"module fixture.Option.
+
+pub type None = Atom["none"].
+pub type Some[T] = {Atom["some"], T}.
+pub type Option[T] = None | Some[T].
+
+pub (value: Option[A]) with_default(default: A): A.
+"#,
+    )
+    .expect("parse inherent operation provider");
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        "fixture.Option".to_string(),
+        syntax_module_output_to_interface(&provider),
+    );
+    let consumer = parse_module_as_syntax_output(
+        r#"module inherent_operation_consumer.
+
+import type fixture.Option.
+import fixture.Option.{None, Some}.
+
+pub present(): Option[Int] -> Some(7).
+pub missing(): Option[Int] -> None.
+pub receiver(value: Option[Int]): Int -> value.with_default(0).
+pub static_call(value: Option[Int]): Int -> Option.with_default(value, 0).
+"#,
+    )
+    .expect("parse inherent operation consumer");
+
+    let resolved = resolve_syntax_module_output_with_interfaces(&consumer, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&consumer, &resolved);
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected inherent operation diagnostics: {diagnostics:?}"
+    );
+
+    let aliased_consumer = parse_module_as_syntax_output(
+        r#"module aliased_inherent_operation_consumer.
+
+import type fixture.Option.{Option as Maybe}.
+
+pub static_call(value: Maybe[Int]): Int -> Maybe.with_default(value, 0).
+"#,
+    )
+    .expect("parse aliased inherent operation consumer");
+    let resolved =
+        resolve_syntax_module_output_with_interfaces(&aliased_consumer, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&aliased_consumer, &resolved);
+
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected aliased operation diagnostics: {diagnostics:?}"
+    );
+}
+
+/// Verifies type imports keep provider functions qualified by default.
+#[test]
+fn type_import_keeps_provider_functions_qualified() {
+    let provider = parse_interface_module_as_syntax_output(
+        "module fixture.Widget.\npub type Widget = Int.\npub unrelated(): Int.\n",
+    )
+    .expect("parse static function provider");
+    let mut interfaces = HashMap::new();
+    interfaces.insert(
+        "fixture.Widget".to_string(),
+        syntax_module_output_to_interface(&provider),
+    );
+    let consumer = parse_module_as_syntax_output(
+        "module static_function_consumer.\nimport type fixture.Widget.\npub valid(): Int -> Widget.unrelated().\n",
+    )
+    .expect("parse static function consumer");
+
+    let imports = collect_syntax_import_maps(&consumer, &interfaces);
+
+    assert_eq!(
+        imports.module_aliases.get("Widget").map(String::as_str),
+        Some("fixture.Widget")
+    );
+    assert!(!imports.function_imports.contains_key("unrelated"));
+}
+
 /// Verifies constructor summaries resolve imported dependency aliases before
 /// overload selection, independently of unrelated loaded interfaces.
 #[test]

@@ -3,7 +3,7 @@
  */
 module tvm_aot_platform_matrix.ReleasePlatform.
 
-import std.core.Option.{None, Some, with_default, with_default_else}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{String}.
 import std.data.Json.

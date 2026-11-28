@@ -3,7 +3,7 @@
  */
 module tvm_aot_platform_matrix.MulticoreThreadSanitizer.
 
-import std.core.Option.{None, Some, map}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.crypto.Hash.{sha256_file}.

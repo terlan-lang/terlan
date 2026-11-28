@@ -5,7 +5,7 @@ module release_promotion.Readiness.
 
 import release_promotion.EvidenceReports.
 import std.collections.List.
-import std.core.Option.{None, Some, with_default}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{String, Unit}.
 import std.crypto.Hash.
@@ -14,6 +14,7 @@ import std.io.Console.{eprintln}.
 import std.io.{Directory, File}.
 import std.system.Environment.
 
+import type std.core.Option.
 import type std.data.Json.
 import type std.data.Json.RequiredFieldRow.
 
